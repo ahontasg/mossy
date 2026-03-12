@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(which bun:*)",
+      "WebFetch(domain:v2.tauri.app)",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:github.com)",
+      "Bash(bun add:*)",
+      "Bash(bun remove:*)",
+      "WebSearch",
+      "WebFetch(domain:ollama.com)"
+    ]
+  }
+}
