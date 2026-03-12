@@ -2,7 +2,8 @@
 
 A cute, AI-powered desktop moss companion built with Tauri v2.
 
-<!-- TODO: add screenshot -->
+<img width="201" height="196" alt="image" src="https://github.com/user-attachments/assets/2b74b9e7-efd5-420f-b494-673ab8949ad0" />
+
 
 ## About
 
