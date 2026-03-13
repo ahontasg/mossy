@@ -4,9 +4,10 @@ import { CELL_SIZE } from "../constants";
 interface PixelGridProps {
   frame: Frame;
   cellSize?: number;
+  colorMap?: Map<string, string>;
 }
 
-export function PixelGrid({ frame, cellSize = CELL_SIZE }: PixelGridProps) {
+export function PixelGrid({ frame, cellSize = CELL_SIZE, colorMap }: PixelGridProps) {
   return (
     <g>
       {frame.map((row, y) =>
@@ -18,7 +19,7 @@ export function PixelGrid({ frame, cellSize = CELL_SIZE }: PixelGridProps) {
               y={y * cellSize}
               width={cellSize}
               height={cellSize}
-              fill={color}
+              fill={colorMap?.get(color) ?? color}
             />
           ) : null,
         ),

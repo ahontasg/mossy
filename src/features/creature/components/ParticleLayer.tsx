@@ -27,8 +27,16 @@ function ParticleSprite({ particle }: { particle: Particle }) {
   );
 }
 
-export function ParticleLayer() {
-  const particles = useParticles();
+import type { ParticleType } from "../data/particles";
+import type { Season } from "../../../types";
+
+export function ParticleLayer({ onSpawnRef, season }: { onSpawnRef?: React.MutableRefObject<((type: ParticleType) => void) | null>; season?: Season }) {
+  const { particles, spawn } = useParticles(season);
+
+  // Expose spawn to parent via ref
+  if (onSpawnRef) {
+    onSpawnRef.current = spawn;
+  }
 
   return (
     <g>

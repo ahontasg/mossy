@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { PARTICLE_CONFIGS, type ParticleConfig } from "../data/particles";
-import type { CareAction } from "../../../types";
+import { PARTICLE_CONFIGS, type ParticleConfig, type ParticleType } from "../data/particles";
 import { useCreatureStore, isDormant } from "../../../stores/creatureStore";
+import type { Season } from "../../../types";
 
 export interface Particle {
   id: number;
@@ -11,16 +11,23 @@ export interface Particle {
   ttl: number; // remaining ticks
 }
 
-const MAX_PARTICLES = 12;
+const MAX_PARTICLES = 16;
 const TICK_MS = 125; // ~8fps for retro feel
+
+const SEASON_PARTICLE: Record<Season, ParticleType> = {
+  spring: "petal",
+  summer: "firefly",
+  autumn: "leaf",
+  winter: "snowflake",
+};
 
 let nextId = 0;
 
-export function useParticles(): Particle[] {
+export function useParticles(season?: Season): { particles: Particle[]; spawn: (type: ParticleType) => void } {
   const [particles, setParticles] = useState<Particle[]>([]);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const spawn = useCallback((actionType: CareAction | "zzz" | "spore") => {
+  const spawn = useCallback((actionType: ParticleType) => {
     const config = PARTICLE_CONFIGS[actionType];
     if (!config) return;
 
@@ -83,14 +90,19 @@ export function useParticles(): Particle[] {
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
 
+    let tick = 0;
     const unsub = useCreatureStore.subscribe(
       (s) => s.stats,
       (stats) => {
         if (isDormant(stats) && !interval) {
-          interval = setInterval(() => spawn("spore"), 800);
+          interval = setInterval(() => {
+            spawn(tick % 2 === 0 ? "zzz" : "spore");
+            tick++;
+          }, 1200);
         } else if (!isDormant(stats) && interval) {
           clearInterval(interval);
           interval = null;
+          tick = 0;
         }
       },
       { fireImmediately: true },
@@ -102,5 +114,20 @@ export function useParticles(): Particle[] {
     };
   }, [spawn]);
 
-  return particles;
+  // Ambient seasonal particles
+  useEffect(() => {
+    if (!season) return;
+    const particleType = SEASON_PARTICLE[season];
+
+    const interval = setInterval(() => {
+      const stats = useCreatureStore.getState().stats;
+      if (!isDormant(stats)) {
+        spawn(particleType);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [season, spawn]);
+
+  return { particles, spawn };
 }
