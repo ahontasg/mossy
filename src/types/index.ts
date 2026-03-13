@@ -158,3 +158,59 @@ export interface UnlockedAchievement {
   id: string;
   unlockedAt: number;
 }
+
+// ── Social types ──
+
+export type AuthStatus = "signed_out" | "loading" | "signed_in";
+
+export type CareEventType =
+  | "feed"
+  | "water"
+  | "pet"
+  | "sunlight"
+  | "chat"
+  | "quest_complete"
+  | "level_up";
+
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  teamId: string | null;
+  referredBy: string | null;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  joinCode: string;
+  createdBy: string;
+}
+
+export interface QueuedCareEvent {
+  id: string;
+  eventType: CareEventType;
+  xpEarned: number;
+  metadata: Record<string, unknown>;
+  clientTimestamp: number;
+  retryCount: number;
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  displayName: string;
+  xp: number;
+  activeDays: number;
+  specimens: number;
+  isCurrentUser: boolean;
+}
+
+export type LeaderboardPeriod = "weekly" | "monthly";
+
+export interface FeedItem {
+  id: string;
+  displayName: string;
+  eventType: CareEventType;
+  xpEarned: number;
+  metadata: Record<string, unknown>;
+  serverTimestamp: string;
+}

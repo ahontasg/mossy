@@ -8,6 +8,7 @@ import { SettingsPanel } from "./features/settings";
 import { JournalPanel, DiscoveryPopup } from "./features/journal";
 import { QuestPanel, QuestCompletionPopup } from "./features/quests";
 import { AchievementToast, AchievementGallery } from "./features/achievements";
+import { AuthPanel, LeaderboardPanel } from "./features/social";
 import { useTimeOfDay } from "./hooks/useTimeOfDay";
 import { useSeason } from "./hooks/useSeason";
 import { initPersistence, saveImmediate, cleanupPersistence } from "./hooks/useTauriStore";
@@ -15,9 +16,12 @@ import { initSettingsPersistence } from "./hooks/useSettingsStore";
 import { initJournalPersistence, cleanupJournalPersistence } from "./hooks/useJournalStore";
 import { initQuestPersistence, cleanupQuestPersistence } from "./hooks/useQuestStore";
 import { initAchievementPersistence, cleanupAchievementPersistence } from "./hooks/useAchievementStore";
+import { initAuthPersistence, cleanupAuthPersistence } from "./hooks/useAuthStore";
+import { initSyncPersistence, cleanupSyncPersistence } from "./hooks/useSyncStore";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCreatureStore } from "./stores/creatureStore";
 import { useChatStore } from "./stores/chatStore";
+import { useAuthStore } from "./stores/authStore";
 import { expandWindow, collapseWindow } from "./hooks/useWindowResize";
 
 function App() {
@@ -30,14 +34,26 @@ function App() {
   const [showJournal, setShowJournal] = useState(false);
   const [showQuests, setShowQuests] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showSocial, setShowSocial] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const hasTeam = useAuthStore((s) => s.team !== null);
 
   useEffect(() => {
     (async () => {
-      await initPersistence();
-      await initSettingsPersistence();
-      await initJournalPersistence();
-      await initQuestPersistence();
-      await initAchievementPersistence();
+      // Wave 1: independent store hydrations (local + auth network call in parallel)
+      await Promise.all([
+        initPersistence(),
+        initSettingsPersistence(),
+        initJournalPersistence(),
+        initAuthPersistence(),
+      ]);
+      // Wave 2: depend on creature/journal stores being ready
+      await Promise.all([
+        initQuestPersistence(),
+        initAchievementPersistence(),
+      ]);
+      // Wave 3: depends on auth being ready
+      await initSyncPersistence();
       checkLlmStatus();
     })();
 
@@ -65,6 +81,8 @@ function App() {
       cleanupJournalPersistence();
       cleanupQuestPersistence();
       cleanupAchievementPersistence();
+      cleanupAuthPersistence();
+      cleanupSyncPersistence();
       unlisten.then((fn) => fn());
       unlistenCare.then((fn) => fn());
       unlistenSettings.then((fn) => fn());
@@ -115,6 +133,8 @@ function App() {
               onJournalToggle={() => setShowJournal(true)}
               onQuestToggle={() => setShowQuests(true)}
               onAchievementToggle={() => setShowAchievements(true)}
+              onSocialToggle={() => setShowSocial(true)}
+              onLeaderboardToggle={hasTeam ? () => setShowLeaderboard(true) : undefined}
             />
             <div className="ml-1 flex-shrink-0">
               <ChatToggle onToggle={handleToggleChat} />
@@ -126,6 +146,8 @@ function App() {
           {showJournal && <JournalPanel onClose={() => setShowJournal(false)} />}
           {showQuests && <QuestPanel onClose={() => setShowQuests(false)} />}
           {showAchievements && <AchievementGallery onClose={() => setShowAchievements(false)} />}
+          {showSocial && <AuthPanel onClose={() => setShowSocial(false)} />}
+          {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}
         </>
       )}
       <QuestCompletionPopup />

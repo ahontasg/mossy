@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useChatStore } from "../../stores/chatStore";
+import { SnapshotButton } from "../social";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -87,6 +88,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <div className="text-white/30 text-[8px]">
             Qwen3.5 0.8B Q4_K_M
           </div>
+        </div>
+
+        {/* Growth Snapshot */}
+        <div className="mt-2 pt-2 border-t border-white/10">
+          <SnapshotButton />
         </div>
       </div>
     </motion.div>

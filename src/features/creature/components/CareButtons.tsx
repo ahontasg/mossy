@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useCreatureStore } from "../../../stores/creatureStore";
 import { JournalToggle } from "../../journal";
 import { QuestIndicator } from "../../quests";
+import { SocialToggle } from "../../social/components/SocialToggle";
+import { isSupabaseConfigured } from "../../../lib/supabase";
+import { useAuthStore } from "../../../stores/authStore";
 import type { CareAction, GrowthStage } from "../../../types";
 
 const COOLDOWN_MS = 8000;
@@ -109,13 +112,17 @@ interface CareButtonsProps {
   onJournalToggle?: () => void;
   onQuestToggle?: () => void;
   onAchievementToggle?: () => void;
+  onSocialToggle?: () => void;
+  onLeaderboardToggle?: () => void;
 }
 
-export function CareButtons({ onJournalToggle, onQuestToggle, onAchievementToggle }: CareButtonsProps) {
+export function CareButtons({ onJournalToggle, onQuestToggle, onAchievementToggle, onSocialToggle, onLeaderboardToggle }: CareButtonsProps) {
   const stats = useCreatureStore((s) => s.stats);
   const level = useCreatureStore((s) => s.level);
   const xp = useCreatureStore((s) => s.xp);
   const growthStage = useCreatureStore((s) => s.growthStage);
+  const hasTeam = useAuthStore((s) => s.team !== null);
+  const showSocial = isSupabaseConfigured();
 
   const cooldownTimers = useRef<Map<CareAction, ReturnType<typeof setTimeout>>>(new Map());
   const [cooldownKeys, setCooldownKeys] = useState<Set<CareAction>>(new Set());
@@ -147,7 +154,7 @@ export function CareButtons({ onJournalToggle, onQuestToggle, onAchievementToggl
   return (
     <div className="flex flex-col items-center gap-0.5">
       {/* Meta-indicator row */}
-      {(onJournalToggle || onQuestToggle || onAchievementToggle) && (
+      {(onJournalToggle || onQuestToggle || onAchievementToggle || (showSocial && onSocialToggle)) && (
         <div
           className="flex items-center gap-1 rounded-lg px-2 py-0.5"
           style={{ background: "rgba(0, 0, 0, 0.25)" }}
@@ -162,6 +169,19 @@ export function CareButtons({ onJournalToggle, onQuestToggle, onAchievementToggl
               title="Achievements"
             >
               <span className="text-[10px] leading-none">&#x1F3C6;</span>
+            </button>
+          )}
+          {showSocial && onSocialToggle && (
+            <SocialToggle onClick={onSocialToggle} />
+          )}
+          {hasTeam && onLeaderboardToggle && (
+            <button
+              onClick={onLeaderboardToggle}
+              className="flex items-center justify-center w-5 h-5 rounded transition-transform hover:scale-110"
+              style={{ background: "rgba(255, 255, 255, 0.08)" }}
+              title="Leaderboard"
+            >
+              <span className="text-[10px] leading-none">{"\u{1F3C5}"}</span>
             </button>
           )}
         </div>
