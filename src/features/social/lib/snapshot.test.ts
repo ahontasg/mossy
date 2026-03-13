@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import "../../../test/mocks/tauri";
 import { generateSnapshot } from "./snapshot";
 import { useCreatureStore } from "../../../stores/creatureStore";
+import { useFocusStore } from "../../../stores/focusStore";
 import { useJournalStore } from "../../../stores/journalStore";
 import { useQuestStore } from "../../../stores/questStore";
 import { useAchievementStore } from "../../../stores/achievementStore";
@@ -11,6 +12,10 @@ beforeEach(() => {
     level: 5,
     xp: 30,
     streak: { currentStreak: 3, lastCareDate: "2026-03-13", shieldAvailable: true, shieldLastGrantedWeek: null },
+  });
+  useFocusStore.setState({
+    totalFocusMinutes: 120,
+    focusStreak: 5,
   });
   useJournalStore.setState({
     discovered: [
@@ -26,7 +31,6 @@ beforeEach(() => {
       { templateId: "q3", progress: 0, completed: false, completedAt: null, thresholdMetSince: null },
     ],
   });
-  // Build care history with recent dates (last 12 calendar days, some gaps)
   const today = new Date();
   const recentDates: string[] = [];
   for (let i = 0; i < 23; i++) {
@@ -37,9 +41,9 @@ beforeEach(() => {
   useAchievementStore.setState({
     careHistory: recentDates.map((date) => ({
       date,
-      actions: ["feed" as const],
+      actions: ["focus_complete" as const],
     })),
-    totalCareActions: 50,
+    totalFocusSessions: 50,
     totalChats: 10,
     unlocked: [],
   });
@@ -57,9 +61,13 @@ describe("generateSnapshot", () => {
     expect(text).toContain("Care Rhythm");
   });
 
+  it("includes focus stats", () => {
+    const text = generateSnapshot();
+    expect(text).toContain("2h 0m total focus");
+  });
+
   it("includes most recent discovery", () => {
     const text = generateSnapshot();
-    // Last discovered is moss_mite (index 1) — no, the array has crystal_cap first, moss_mite second
     expect(text).toContain("Moss Mite");
   });
 
@@ -68,9 +76,9 @@ describe("generateSnapshot", () => {
     expect(text).toContain("2/32 specimens discovered");
   });
 
-  it("includes streak", () => {
+  it("includes focus streak", () => {
     const text = generateSnapshot();
-    expect(text).toContain("3-day streak");
+    expect(text).toContain("5-day focus streak");
   });
 
   it("includes quest progress", () => {
@@ -79,11 +87,9 @@ describe("generateSnapshot", () => {
   });
 
   it("omits streak when zero", () => {
-    useCreatureStore.setState({
-      streak: { currentStreak: 0, lastCareDate: null, shieldAvailable: true, shieldLastGrantedWeek: null },
-    });
+    useFocusStore.setState({ focusStreak: 0 });
     const text = generateSnapshot();
-    expect(text).not.toContain("streak");
+    expect(text).not.toContain("focus streak");
   });
 
   it("omits quests when none completed", () => {

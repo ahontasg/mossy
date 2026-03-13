@@ -7,20 +7,21 @@ const MAX_HISTORY_DAYS = 120;
 
 export interface PersistedAchievementData {
   unlocked: UnlockedAchievement[];
-  totalCareActions: number;
+  totalFocusSessions: number;
   totalChats: number;
   careHistory: CareHistoryEntry[];
 }
 
 interface AchievementStore {
   unlocked: UnlockedAchievement[];
-  totalCareActions: number;
+  totalFocusSessions: number;
   totalChats: number;
   careHistory: CareHistoryEntry[];
   lastUnlock: UnlockedAchievement | null;
 
-  recordCareAction: (action: CareAction) => void;
+  recordFocusSession: () => void;
   recordChat: () => void;
+  recordCareDay: (action: CareAction) => void;
   unlock: (id: string) => void;
   hydrate: (data: PersistedAchievementData) => void;
   getUnlockedIds: () => Set<string>;
@@ -29,12 +30,38 @@ interface AchievementStore {
 export const useAchievementStore = create<AchievementStore>()(
   subscribeWithSelector((set, get) => ({
     unlocked: [],
-    totalCareActions: 0,
+    totalFocusSessions: 0,
     totalChats: 0,
     careHistory: [],
     lastUnlock: null,
 
-    recordCareAction: (action: CareAction) => {
+    recordFocusSession: () => {
+      set((s) => {
+        const today = getLocalDate();
+        let history = [...s.careHistory];
+        const todayEntry = history.find((e) => e.date === today);
+        if (todayEntry) {
+          history = history.map((e) =>
+            e.date === today ? { ...e, actions: [...e.actions, "focus_complete" as CareAction] } : e,
+          );
+        } else {
+          history = [...history, { date: today, actions: ["focus_complete" as CareAction] }];
+        }
+        if (history.length > MAX_HISTORY_DAYS) {
+          history = history.slice(history.length - MAX_HISTORY_DAYS);
+        }
+        return {
+          totalFocusSessions: s.totalFocusSessions + 1,
+          careHistory: history,
+        };
+      });
+    },
+
+    recordChat: () => {
+      set((s) => ({ totalChats: s.totalChats + 1 }));
+    },
+
+    recordCareDay: (action: CareAction) => {
       set((s) => {
         const today = getLocalDate();
         let history = [...s.careHistory];
@@ -46,19 +73,11 @@ export const useAchievementStore = create<AchievementStore>()(
         } else {
           history = [...history, { date: today, actions: [action] }];
         }
-        // Trim to MAX_HISTORY_DAYS
         if (history.length > MAX_HISTORY_DAYS) {
           history = history.slice(history.length - MAX_HISTORY_DAYS);
         }
-        return {
-          totalCareActions: s.totalCareActions + 1,
-          careHistory: history,
-        };
+        return { careHistory: history };
       });
-    },
-
-    recordChat: () => {
-      set((s) => ({ totalChats: s.totalChats + 1 }));
     },
 
     unlock: (id: string) => {
@@ -73,7 +92,7 @@ export const useAchievementStore = create<AchievementStore>()(
     hydrate: (data: PersistedAchievementData) => {
       set({
         unlocked: data.unlocked ?? [],
-        totalCareActions: data.totalCareActions ?? 0,
+        totalFocusSessions: data.totalFocusSessions ?? 0,
         totalChats: data.totalChats ?? 0,
         careHistory: data.careHistory ?? [],
       });

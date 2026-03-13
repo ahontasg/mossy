@@ -17,18 +17,18 @@ describe("syncStore", () => {
   describe("enqueue", () => {
     it("adds event to queue", () => {
       useSyncStore.getState().enqueue({
-        eventType: "feed",
+        eventType: "focus_complete",
         xpEarned: 10,
         metadata: {},
         clientTimestamp: Date.now(),
       });
       expect(useSyncStore.getState().queue).toHaveLength(1);
-      expect(useSyncStore.getState().queue[0].eventType).toBe("feed");
+      expect(useSyncStore.getState().queue[0].eventType).toBe("focus_complete");
     });
 
     it("assigns unique id and retryCount 0", () => {
       useSyncStore.getState().enqueue({
-        eventType: "water",
+        eventType: "chat",
         xpEarned: 10,
         metadata: {},
         clientTimestamp: Date.now(),
@@ -41,7 +41,7 @@ describe("syncStore", () => {
     it("caps queue at 500 events", () => {
       for (let i = 0; i < 510; i++) {
         useSyncStore.getState().enqueue({
-          eventType: "feed",
+          eventType: "focus_complete",
           xpEarned: 10,
           metadata: {},
           clientTimestamp: Date.now(),
@@ -55,7 +55,7 @@ describe("syncStore", () => {
     it("clears queue on successful sync", async () => {
       mockSupabase.rpc.mockResolvedValue({ data: "event-id", error: null } as never);
       useSyncStore.getState().enqueue({
-        eventType: "feed",
+        eventType: "focus_complete",
         xpEarned: 10,
         metadata: {},
         clientTimestamp: Date.now(),
@@ -68,7 +68,7 @@ describe("syncStore", () => {
     it("increments retryCount on failure", async () => {
       mockSupabase.rpc.mockRejectedValue(new Error("Network error"));
       useSyncStore.getState().enqueue({
-        eventType: "feed",
+        eventType: "focus_complete",
         xpEarned: 10,
         metadata: {},
         clientTimestamp: Date.now(),
@@ -82,7 +82,7 @@ describe("syncStore", () => {
         queue: [
           {
             id: "test-1",
-            eventType: "feed",
+            eventType: "focus_complete",
             xpEarned: 10,
             metadata: {},
             clientTimestamp: Date.now(),
@@ -100,7 +100,7 @@ describe("syncStore", () => {
         queue: [
           {
             id: "test-1",
-            eventType: "feed",
+            eventType: "focus_complete",
             xpEarned: 10,
             metadata: {},
             clientTimestamp: Date.now() - 25 * 60 * 60 * 1000,
@@ -115,7 +115,7 @@ describe("syncStore", () => {
     it("skips when offline", async () => {
       useSyncStore.setState({ isOnline: false });
       useSyncStore.getState().enqueue({
-        eventType: "feed",
+        eventType: "focus_complete",
         xpEarned: 10,
         metadata: {},
         clientTimestamp: Date.now(),
@@ -128,7 +128,7 @@ describe("syncStore", () => {
     it("skips when already syncing", async () => {
       useSyncStore.setState({ isSyncing: true });
       useSyncStore.getState().enqueue({
-        eventType: "feed",
+        eventType: "focus_complete",
         xpEarned: 10,
         metadata: {},
         clientTimestamp: Date.now(),
@@ -143,7 +143,7 @@ describe("syncStore", () => {
       useSyncStore.getState().hydrate([
         {
           id: "test-1",
-          eventType: "feed",
+          eventType: "focus_complete",
           xpEarned: 10,
           metadata: {},
           clientTimestamp: Date.now(),
@@ -157,7 +157,7 @@ describe("syncStore", () => {
       useSyncStore.getState().hydrate([
         {
           id: "test-1",
-          eventType: "feed",
+          eventType: "focus_complete",
           xpEarned: 10,
           metadata: {},
           clientTimestamp: Date.now() - 25 * 60 * 60 * 1000,
@@ -171,7 +171,7 @@ describe("syncStore", () => {
       useSyncStore.getState().hydrate([
         {
           id: "test-1",
-          eventType: "feed",
+          eventType: "focus_complete",
           xpEarned: 10,
           metadata: {},
           clientTimestamp: Date.now(),
@@ -187,7 +187,7 @@ describe("syncStore", () => {
       mockSupabase.rpc.mockResolvedValue({ data: "event-id", error: null } as never);
       useSyncStore.setState({ isOnline: false });
       useSyncStore.getState().enqueue({
-        eventType: "feed",
+        eventType: "focus_complete",
         xpEarned: 10,
         metadata: {},
         clientTimestamp: Date.now(),

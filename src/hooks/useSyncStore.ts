@@ -2,6 +2,7 @@ import { load } from "@tauri-apps/plugin-store";
 import { useSyncStore, CARE_EVENT_XP } from "../stores/syncStore";
 import { useAuthStore } from "../stores/authStore";
 import { useCreatureStore } from "../stores/creatureStore";
+import { useFocusStore } from "../stores/focusStore";
 import { useChatStore } from "../stores/chatStore";
 import { useQuestStore } from "../stores/questStore";
 import { isSupabaseConfigured } from "../lib/supabase";
@@ -49,14 +50,13 @@ export async function initSyncPersistence() {
     useSyncStore.getState().hydrate(data);
   }
 
-  // Subscribe to care actions
+  // Subscribe to focus session completions
   unsubs.push(
-    useCreatureStore.subscribe(
-      (s) => s.lastCareAction,
-      (action) => {
-        if (action) {
-          const xp = CARE_EVENT_XP[action.type as CareEventType] ?? 0;
-          enqueueIfSignedIn(action.type as CareEventType, xp);
+    useFocusStore.subscribe(
+      (s) => s.completedSessionsToday,
+      (sessions, prevSessions) => {
+        if (sessions > prevSessions) {
+          enqueueIfSignedIn("focus_complete", CARE_EVENT_XP.focus_complete);
         }
       },
     ),

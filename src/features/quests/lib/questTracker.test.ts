@@ -1,9 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
-  trackCareAction,
+  trackFocusSession,
   trackChatMessage,
   trackChatTime,
-  trackStatCheck,
   trackLevelUp,
   trackStreakChange,
   trackSpecimenDiscovery,
@@ -15,38 +14,54 @@ function makeQuest(templateId: string, progress = 0): ActiveQuest {
   return { templateId, progress, completed: false, completedAt: null, thresholdMetSince: null };
 }
 
-describe("trackCareAction", () => {
-  it("increments care_count quests for matching action", () => {
-    const quests = [makeQuest("water_3")];
-    const result = trackCareAction(quests, QUEST_TEMPLATE_MAP, "water");
+describe("trackFocusSession", () => {
+  it("increments focus_sessions quests", () => {
+    const quests = [makeQuest("focus_2")];
+    const result = trackFocusSession(quests, QUEST_TEMPLATE_MAP, 1, 25);
     expect(result[0].progress).toBe(1);
     expect(result[0].completed).toBe(false);
   });
 
-  it("completes care_count quest at target", () => {
-    const quests = [{ ...makeQuest("water_3"), progress: 2 }];
-    const result = trackCareAction(quests, QUEST_TEMPLATE_MAP, "water");
-    expect(result[0].progress).toBe(3);
+  it("completes focus_sessions quest at target", () => {
+    const quests = [makeQuest("focus_2")];
+    const result = trackFocusSession(quests, QUEST_TEMPLATE_MAP, 2, 50);
+    expect(result[0].progress).toBe(2);
     expect(result[0].completed).toBe(true);
     expect(result[0].completedAt).not.toBeNull();
   });
 
-  it("does not increment for wrong action", () => {
-    const quests = [makeQuest("water_3")];
-    const result = trackCareAction(quests, QUEST_TEMPLATE_MAP, "feed");
-    expect(result[0].progress).toBe(0);
+  it("tracks focus_minutes quests", () => {
+    const quests = [makeQuest("focus_30m")];
+    const result = trackFocusSession(quests, QUEST_TEMPLATE_MAP, 1, 25);
+    expect(result[0].progress).toBe(25);
+    expect(result[0].completed).toBe(false);
   });
 
-  it("increments care_any_count for any action", () => {
-    const quests = [makeQuest("any_5")];
-    const result = trackCareAction(quests, QUEST_TEMPLATE_MAP, "pet");
-    expect(result[0].progress).toBe(1);
+  it("completes focus_minutes quest at target", () => {
+    const quests = [makeQuest("focus_30m")];
+    const result = trackFocusSession(quests, QUEST_TEMPLATE_MAP, 2, 50);
+    expect(result[0].progress).toBe(30);
+    expect(result[0].completed).toBe(true);
+  });
+
+  it("tracks focus_cycle quests", () => {
+    const quests = [makeQuest("focus_4")];
+    const result = trackFocusSession(quests, QUEST_TEMPLATE_MAP, 3, 75);
+    expect(result[0].progress).toBe(3);
+    expect(result[0].completed).toBe(false);
+  });
+
+  it("completes focus_cycle quest at 4 sessions", () => {
+    const quests = [makeQuest("focus_4")];
+    const result = trackFocusSession(quests, QUEST_TEMPLATE_MAP, 4, 100);
+    expect(result[0].progress).toBe(4);
+    expect(result[0].completed).toBe(true);
   });
 
   it("skips completed quests", () => {
-    const quests = [{ ...makeQuest("water_3"), completed: true, progress: 3, completedAt: 1000 }];
-    const result = trackCareAction(quests, QUEST_TEMPLATE_MAP, "water");
-    expect(result[0].progress).toBe(3);
+    const quests = [{ ...makeQuest("focus_2"), completed: true, progress: 2, completedAt: 1000 }];
+    const result = trackFocusSession(quests, QUEST_TEMPLATE_MAP, 3, 75);
+    expect(result[0].progress).toBe(2);
   });
 });
 
@@ -83,30 +98,6 @@ describe("trackChatTime", () => {
     const quests = [{ ...makeQuest("chat_morning"), completed: true, progress: 1, completedAt: 1000 }];
     const result = trackChatTime(quests, QUEST_TEMPLATE_MAP, "morning");
     expect(result[0].completedAt).toBe(1000);
-  });
-});
-
-describe("trackStatCheck", () => {
-  it("starts timer when stats meet threshold", () => {
-    const quests = [makeQuest("stats_60_30m")];
-    const stats = { hunger: 70, hydration: 70, happiness: 70, energy: 70 };
-    const result = trackStatCheck(quests, QUEST_TEMPLATE_MAP, stats, 1000);
-    expect(result[0].thresholdMetSince).toBe(1000);
-  });
-
-  it("resets timer when stats drop below threshold", () => {
-    const quests = [{ ...makeQuest("stats_60_30m"), thresholdMetSince: 1000 }];
-    const stats = { hunger: 50, hydration: 70, happiness: 70, energy: 70 };
-    const result = trackStatCheck(quests, QUEST_TEMPLATE_MAP, stats, 2000);
-    expect(result[0].thresholdMetSince).toBeNull();
-    expect(result[0].progress).toBe(0);
-  });
-
-  it("completes when duration met", () => {
-    const quests = [{ ...makeQuest("stats_60_30m"), thresholdMetSince: 0 }];
-    const stats = { hunger: 70, hydration: 70, happiness: 70, energy: 70 };
-    const result = trackStatCheck(quests, QUEST_TEMPLATE_MAP, stats, 30 * 60_000);
-    expect(result[0].completed).toBe(true);
   });
 });
 

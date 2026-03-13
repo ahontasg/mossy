@@ -114,7 +114,7 @@ describe("chatStore", () => {
 
       const xpBefore = useCreatureStore.getState().xp;
       await useChatStore.getState().sendMessage("test");
-      expect(useCreatureStore.getState().xp).toBe(xpBefore + 5);
+      expect(useCreatureStore.getState().xp).toBe(xpBefore + 10);
     });
 
     it("handles error events gracefully", async () => {

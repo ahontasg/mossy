@@ -4,7 +4,7 @@ import { useAchievementStore } from "./achievementStore";
 function resetStore() {
   useAchievementStore.setState({
     unlocked: [],
-    totalCareActions: 0,
+    totalFocusSessions: 0,
     totalChats: 0,
     careHistory: [],
     lastUnlock: null,
@@ -14,31 +14,29 @@ function resetStore() {
 describe("achievementStore", () => {
   beforeEach(resetStore);
 
-  describe("recordCareAction", () => {
-    it("increments totalCareActions", () => {
-      useAchievementStore.getState().recordCareAction("feed");
-      expect(useAchievementStore.getState().totalCareActions).toBe(1);
+  describe("recordFocusSession", () => {
+    it("increments totalFocusSessions", () => {
+      useAchievementStore.getState().recordFocusSession();
+      expect(useAchievementStore.getState().totalFocusSessions).toBe(1);
     });
 
     it("adds to careHistory for today", () => {
-      useAchievementStore.getState().recordCareAction("water");
-      useAchievementStore.getState().recordCareAction("feed");
+      useAchievementStore.getState().recordFocusSession();
+      useAchievementStore.getState().recordFocusSession();
       const history = useAchievementStore.getState().careHistory;
       expect(history).toHaveLength(1);
       expect(history[0].actions).toHaveLength(2);
-      expect(history[0].actions).toContain("water");
-      expect(history[0].actions).toContain("feed");
+      expect(history[0].actions).toContain("focus_complete");
     });
 
     it("trims history beyond 120 days", () => {
-      // Pre-fill with 120 entries
       const oldHistory = Array.from({ length: 120 }, (_, i) => ({
         date: `2025-01-${String(i + 1).padStart(2, "0")}`,
-        actions: ["feed" as const],
+        actions: ["focus_complete" as const],
       }));
       useAchievementStore.setState({ careHistory: oldHistory });
 
-      useAchievementStore.getState().recordCareAction("water");
+      useAchievementStore.getState().recordFocusSession();
       expect(useAchievementStore.getState().careHistory.length).toBeLessThanOrEqual(120);
     });
   });
@@ -77,11 +75,11 @@ describe("achievementStore", () => {
     it("restores persisted data", () => {
       useAchievementStore.getState().hydrate({
         unlocked: [{ id: "first_chat", unlockedAt: 1000 }],
-        totalCareActions: 50,
+        totalFocusSessions: 50,
         totalChats: 10,
-        careHistory: [{ date: "2026-03-12", actions: ["feed", "water"] }],
+        careHistory: [{ date: "2026-03-12", actions: ["focus_complete", "chat"] }],
       });
-      expect(useAchievementStore.getState().totalCareActions).toBe(50);
+      expect(useAchievementStore.getState().totalFocusSessions).toBe(50);
       expect(useAchievementStore.getState().totalChats).toBe(10);
       expect(useAchievementStore.getState().unlocked).toHaveLength(1);
       expect(useAchievementStore.getState().careHistory).toHaveLength(1);

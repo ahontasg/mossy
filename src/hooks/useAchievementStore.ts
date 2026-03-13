@@ -1,6 +1,7 @@
 import { load } from "@tauri-apps/plugin-store";
 import { useAchievementStore, type PersistedAchievementData } from "../stores/achievementStore";
 import { useCreatureStore } from "../stores/creatureStore";
+import { useFocusStore } from "../stores/focusStore";
 import { useChatStore } from "../stores/chatStore";
 import { useJournalStore } from "../stores/journalStore";
 import { ACHIEVEMENTS, type AchievementContext } from "../features/achievements/data/achievements";
@@ -13,10 +14,10 @@ const unsubs: (() => void)[] = [];
 
 async function saveToStore() {
   if (!storeInstance) return;
-  const { unlocked, totalCareActions, totalChats, careHistory } = useAchievementStore.getState();
+  const { unlocked, totalFocusSessions, totalChats, careHistory } = useAchievementStore.getState();
   await storeInstance.set("achievements", {
     unlocked,
-    totalCareActions,
+    totalFocusSessions,
     totalChats,
     careHistory,
   } satisfies PersistedAchievementData);
@@ -28,20 +29,22 @@ function debouncedSave() {
   debounceTimer = setTimeout(saveToStore, 2000);
 }
 
-function buildContext(actionTimeOfDay?: TimeOfDay): AchievementContext {
-  const { level, growthStage, streak, stats } = useCreatureStore.getState();
-  const { totalCareActions, totalChats } = useAchievementStore.getState();
+function buildContext(focusTimeOfDay?: TimeOfDay): AchievementContext {
+  const { level, growthStage, stats } = useCreatureStore.getState();
+  const { totalChats } = useAchievementStore.getState();
+  const { focusStreak, completedSessionsToday, totalFocusMinutes } = useFocusStore.getState();
   const discoveredCount = useJournalStore.getState().discovered.length;
 
   return {
     level,
     growthStage,
-    streak: streak.currentStreak,
-    totalCareActions,
+    focusStreak,
+    completedSessionsToday,
+    totalFocusMinutes,
     totalChats,
     discoveredCount,
     timeOfDay: getTimeOfDay(),
-    lastCareActionTimeOfDay: actionTimeOfDay,
+    lastFocusTimeOfDay: focusTimeOfDay,
     allStatsAbove75:
       stats.hunger >= 75 &&
       stats.hydration >= 75 &&
@@ -50,8 +53,8 @@ function buildContext(actionTimeOfDay?: TimeOfDay): AchievementContext {
   };
 }
 
-function checkAchievements(actionTimeOfDay?: TimeOfDay) {
-  const ctx = buildContext(actionTimeOfDay);
+function checkAchievements(focusTimeOfDay?: TimeOfDay) {
+  const ctx = buildContext(focusTimeOfDay);
   const unlockedIds = useAchievementStore.getState().getUnlockedIds();
 
   for (const achievement of ACHIEVEMENTS) {
@@ -73,13 +76,13 @@ export async function initAchievementPersistence() {
   // Check achievements on startup (catch up)
   checkAchievements();
 
-  // Subscribe to care actions
+  // Subscribe to focus session completions
   unsubs.push(
-    useCreatureStore.subscribe(
-      (s) => s.lastCareAction,
-      (action) => {
-        if (action) {
-          useAchievementStore.getState().recordCareAction(action.type);
+    useFocusStore.subscribe(
+      (s) => s.completedSessionsToday,
+      (sessions, prevSessions) => {
+        if (sessions > prevSessions) {
+          useAchievementStore.getState().recordFocusSession();
           checkAchievements(getTimeOfDay());
         }
       },
@@ -102,7 +105,7 @@ export async function initAchievementPersistence() {
     ),
   );
 
-  // Subscribe to level + streak changes
+  // Subscribe to level changes
   unsubs.push(
     useCreatureStore.subscribe(
       (s) => s.level,
@@ -110,9 +113,10 @@ export async function initAchievementPersistence() {
     ),
   );
 
+  // Subscribe to focus streak changes
   unsubs.push(
-    useCreatureStore.subscribe(
-      (s) => s.streak.currentStreak,
+    useFocusStore.subscribe(
+      (s) => s.focusStreak,
       () => checkAchievements(),
     ),
   );
@@ -135,7 +139,7 @@ export async function initAchievementPersistence() {
   );
   unsubs.push(
     useAchievementStore.subscribe(
-      (s) => s.totalCareActions,
+      (s) => s.totalFocusSessions,
       () => debouncedSave(),
     ),
   );

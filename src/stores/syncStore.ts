@@ -98,11 +98,10 @@ export const useSyncStore = create<SyncStore>()(
 
 // XP values per event type (must match server validation)
 export const CARE_EVENT_XP: Record<CareEventType, number> = {
-  feed: 10,
-  water: 10,
-  pet: 5,
-  sunlight: 15,
-  chat: 5,
-  quest_complete: 0, // variable — set from quest template
+  focus_complete: 30,
+  game_score: 0,          // variable — set dynamically per game
+  challenge_complete: 0,  // variable — set dynamically per score
+  chat: 10,
+  quest_complete: 0,      // variable — from quest template
   level_up: 0,
 };

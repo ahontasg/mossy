@@ -1,19 +1,21 @@
 import { load } from "@tauri-apps/plugin-store";
 import { useQuestStore } from "../stores/questStore";
 import { useCreatureStore } from "../stores/creatureStore";
+import { useFocusStore } from "../stores/focusStore";
 import { useChatStore } from "../stores/chatStore";
 import { useJournalStore } from "../stores/journalStore";
+import { useAssistantStore } from "../stores/assistantStore";
 import { QUEST_TEMPLATE_MAP } from "../features/quests/data/questTemplates";
 import { SPECIMENS } from "../features/journal/data/specimens";
 import { generateDailyQuests } from "../features/quests/lib/questGenerator";
 import {
-  trackCareAction,
+  trackFocusSession,
   trackChatMessage,
   trackChatTime,
-  trackStatCheck,
   trackLevelUp,
   trackStreakChange,
   trackSpecimenDiscovery,
+  trackReminderSet,
 } from "../features/quests/lib/questTracker";
 import { getLocalDate, getTimeOfDay } from "../lib/time";
 import type { ActiveQuest } from "../types";
@@ -90,14 +92,30 @@ export async function initQuestPersistence() {
     useQuestStore.getState().setQuests(today, quests);
   }
 
-  // Subscribe to care actions
+  // Subscribe to focus session completions
   unsubs.push(
-    useCreatureStore.subscribe(
-      (s) => s.lastCareAction,
-      (action) => {
-        if (!action) return;
+    useFocusStore.subscribe(
+      (s) => s.completedSessionsToday,
+      () => {
+        const { completedSessionsToday, todayFocusMinutes } = useFocusStore.getState();
         const { quests } = useQuestStore.getState();
-        const next = trackCareAction(quests, QUEST_TEMPLATE_MAP, action.type);
+        const next = trackFocusSession(quests, QUEST_TEMPLATE_MAP, completedSessionsToday, todayFocusMinutes);
+        if (next !== quests) {
+          checkCompletions(quests, next);
+          useQuestStore.getState().updateQuests(next);
+        }
+      },
+    ),
+  );
+
+  // Also track focus minutes (updates separately from session count)
+  unsubs.push(
+    useFocusStore.subscribe(
+      (s) => s.todayFocusMinutes,
+      () => {
+        const { completedSessionsToday, todayFocusMinutes } = useFocusStore.getState();
+        const { quests } = useQuestStore.getState();
+        const next = trackFocusSession(quests, QUEST_TEMPLATE_MAP, completedSessionsToday, todayFocusMinutes);
         if (next !== quests) {
           checkCompletions(quests, next);
           useQuestStore.getState().updateQuests(next);
@@ -138,10 +156,10 @@ export async function initQuestPersistence() {
     ),
   );
 
-  // Subscribe to streak changes
+  // Subscribe to focus streak changes
   unsubs.push(
-    useCreatureStore.subscribe(
-      (s) => s.streak.currentStreak,
+    useFocusStore.subscribe(
+      (s) => s.focusStreak,
       (streak) => {
         const { quests } = useQuestStore.getState();
         const next = trackStreakChange(quests, QUEST_TEMPLATE_MAP, streak);
@@ -169,19 +187,26 @@ export async function initQuestPersistence() {
     ),
   );
 
-  // Subscribe to stats for stat_threshold quests + day rollover check
+  // Subscribe to reminder creation
   unsubs.push(
-    useCreatureStore.subscribe(
-      (s) => s.stats,
-      (stats) => {
-        ensureTodayQuests();
+    useAssistantStore.subscribe(
+      (s) => s.reminders.length,
+      (count) => {
         const { quests } = useQuestStore.getState();
-        const next = trackStatCheck(quests, QUEST_TEMPLATE_MAP, stats, Date.now());
+        const next = trackReminderSet(quests, QUEST_TEMPLATE_MAP, count);
         if (next !== quests) {
           checkCompletions(quests, next);
           useQuestStore.getState().updateQuests(next);
         }
       },
+    ),
+  );
+
+  // Day rollover check on stat decay ticks
+  unsubs.push(
+    useCreatureStore.subscribe(
+      (s) => s.stats,
+      () => ensureTodayQuests(),
     ),
   );
 

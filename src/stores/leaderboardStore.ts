@@ -58,6 +58,9 @@ export const useLeaderboardStore = create<LeaderboardStore>()(
           xp: (row[xpField] as number) ?? 0,
           activeDays: (row.active_days as number) ?? 0,
           specimens: (row.specimens as number) ?? 0,
+          focusSessions: (row.focus_sessions as number) ?? 0,
+          focusMinutes: (row.focus_minutes as number) ?? 0,
+          topGameScore: (row.top_game_score as number) ?? 0,
           isCurrentUser: row.user_id === userId,
         }))
         .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.xp - a.xp);

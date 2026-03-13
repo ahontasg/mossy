@@ -45,6 +45,38 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("helpful assistant");
   });
 
+  it("includes focus line when focusContext has todayFocusMinutes > 0", () => {
+    const prompt = buildSystemPrompt(fullStats, "happy", 5, undefined, {
+      todayFocusMinutes: 45,
+      completedSessionsToday: 2,
+      focusStreak: 3,
+      status: "idle",
+    });
+    expect(prompt).toContain("Focus today: 45m, 2 sessions");
+    expect(prompt).toContain("Streak: 3 days");
+  });
+
+  it("omits focus line when focusContext is not provided", () => {
+    const prompt = buildSystemPrompt(fullStats, "happy", 5);
+    expect(prompt).not.toContain("Focus today");
+  });
+
+  it("omits focus line when todayFocusMinutes is 0", () => {
+    const prompt = buildSystemPrompt(fullStats, "happy", 5, undefined, {
+      todayFocusMinutes: 0,
+      completedSessionsToday: 0,
+      focusStreak: 1,
+      status: "idle",
+    });
+    expect(prompt).not.toContain("Focus today");
+  });
+
+  it("includes assistant capabilities line", () => {
+    const prompt = buildSystemPrompt(fullStats, "happy", 5);
+    expect(prompt).toContain("helpful assistant");
+    expect(prompt).toContain("timers, reminders, and notes");
+  });
+
   it("stays within reasonable token budget", () => {
     const allLowStats: CreatureStats = { hunger: 10, hydration: 10, happiness: 10, energy: 10 };
     const prompt = buildSystemPrompt(allLowStats, "critical" as Mood, 20);

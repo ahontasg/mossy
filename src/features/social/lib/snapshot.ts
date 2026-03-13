@@ -1,4 +1,5 @@
 import { useCreatureStore } from "../../../stores/creatureStore";
+import { useFocusStore } from "../../../stores/focusStore";
 import { useJournalStore } from "../../../stores/journalStore";
 import { useQuestStore } from "../../../stores/questStore";
 import { useAchievementStore } from "../../../stores/achievementStore";
@@ -17,6 +18,7 @@ function careRhythmBar(history: { date: string }[]): string {
 
 export function generateSnapshot(): string {
   const creature = useCreatureStore.getState();
+  const focus = useFocusStore.getState();
   const journal = useJournalStore.getState();
   const quests = useQuestStore.getState();
   const achievements = useAchievementStore.getState();
@@ -30,6 +32,13 @@ export function generateSnapshot(): string {
   lines.push(`\u{1F33F} Mossy Day ${dayCount} | Lvl ${creature.level}`);
   lines.push(`${careRhythmBar(achievements.careHistory)} Care Rhythm`);
 
+  // Focus stats
+  if (focus.totalFocusMinutes > 0) {
+    const hours = Math.floor(focus.totalFocusMinutes / 60);
+    const mins = focus.totalFocusMinutes % 60;
+    lines.push(`\u{1F3AF} ${hours > 0 ? `${hours}h ` : ""}${mins}m total focus`);
+  }
+
   // Most recent discovery
   if (journal.discovered.length > 0) {
     const latest = journal.discovered[journal.discovered.length - 1];
@@ -38,8 +47,8 @@ export function generateSnapshot(): string {
 
   lines.push(`\u2728 ${discoveredCount}/${totalSpecimens} specimens discovered`);
 
-  if (creature.streak.currentStreak > 0) {
-    lines.push(`\u{1F525} ${creature.streak.currentStreak}-day streak`);
+  if (focus.focusStreak > 0) {
+    lines.push(`\u{1F525} ${focus.focusStreak}-day focus streak`);
   }
 
   const completedToday = quests.quests.filter((q) => q.completed).length;

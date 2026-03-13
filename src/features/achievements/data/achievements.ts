@@ -3,12 +3,13 @@ import type { GrowthStage, TimeOfDay } from "../../../types";
 export interface AchievementContext {
   level: number;
   growthStage: GrowthStage;
-  streak: number;
-  totalCareActions: number;
+  focusStreak: number;
+  completedSessionsToday: number;
+  totalFocusMinutes: number;
   totalChats: number;
   discoveredCount: number;
   timeOfDay: TimeOfDay;
-  lastCareActionTimeOfDay?: TimeOfDay;
+  lastFocusTimeOfDay?: TimeOfDay;
   allStatsAbove75: boolean;
 }
 
@@ -17,7 +18,7 @@ export interface AchievementDef {
   name: string;
   description: string;
   icon: string;
-  category: "growth" | "streak" | "care" | "time" | "chat" | "discovery";
+  category: "growth" | "streak" | "focus" | "time" | "chat" | "discovery";
   condition: (ctx: AchievementContext) => boolean;
 }
 
@@ -48,82 +49,90 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     condition: (ctx) => ctx.growthStage === "elder",
   },
 
-  // Streak
+  // Focus
   {
-    id: "streak_7",
-    name: "Week Warrior",
-    description: "Maintain a 7-day care streak",
-    icon: "\u{1F525}",
-    category: "streak",
-    condition: (ctx) => ctx.streak >= 7,
+    id: "first_focus",
+    name: "First Focus",
+    description: "Complete your first focus session",
+    icon: "\u{1F3AF}",
+    category: "focus",
+    condition: (ctx) => ctx.completedSessionsToday >= 1 || ctx.totalFocusMinutes >= 25,
   },
   {
-    id: "streak_14",
-    name: "Fortnight Friend",
-    description: "Maintain a 14-day care streak",
-    icon: "\u{1F525}",
-    category: "streak",
-    condition: (ctx) => ctx.streak >= 14,
-  },
-  {
-    id: "streak_30",
-    name: "Monthly Devotion",
-    description: "Maintain a 30-day care streak",
-    icon: "\u{2B50}",
-    category: "streak",
-    condition: (ctx) => ctx.streak >= 30,
-  },
-  {
-    id: "streak_60",
-    name: "Steadfast Guardian",
-    description: "Maintain a 60-day care streak",
-    icon: "\u{1F48E}",
-    category: "streak",
-    condition: (ctx) => ctx.streak >= 60,
-  },
-  {
-    id: "streak_100",
-    name: "Century of Care",
-    description: "Maintain a 100-day care streak",
-    icon: "\u{1F451}",
-    category: "streak",
-    condition: (ctx) => ctx.streak >= 100,
-  },
-
-  // Care
-  {
-    id: "green_thumb",
-    name: "Green Thumb",
-    description: "Perform 100 total care actions",
-    icon: "\u{1F44D}",
-    category: "care",
-    condition: (ctx) => ctx.totalCareActions >= 100,
+    id: "deep_work",
+    name: "Deep Work",
+    description: "Complete 4 focus sessions in one day",
+    icon: "\u{1F9E0}",
+    category: "focus",
+    condition: (ctx) => ctx.completedSessionsToday >= 4,
   },
   {
     id: "perfect_day",
     name: "Perfect Day",
     description: "Have all stats at 75 or above",
     icon: "\u{2728}",
-    category: "care",
+    category: "focus",
     condition: (ctx) => ctx.allStatsAbove75,
+  },
+
+  // Streak
+  {
+    id: "streak_7",
+    name: "Week Warrior",
+    description: "Maintain a 7-day focus streak",
+    icon: "\u{1F525}",
+    category: "streak",
+    condition: (ctx) => ctx.focusStreak >= 7,
+  },
+  {
+    id: "streak_14",
+    name: "Fortnight Friend",
+    description: "Maintain a 14-day focus streak",
+    icon: "\u{1F525}",
+    category: "streak",
+    condition: (ctx) => ctx.focusStreak >= 14,
+  },
+  {
+    id: "streak_30",
+    name: "Monthly Devotion",
+    description: "Maintain a 30-day focus streak",
+    icon: "\u{2B50}",
+    category: "streak",
+    condition: (ctx) => ctx.focusStreak >= 30,
+  },
+  {
+    id: "streak_60",
+    name: "Steadfast Guardian",
+    description: "Maintain a 60-day focus streak",
+    icon: "\u{1F48E}",
+    category: "streak",
+    condition: (ctx) => ctx.focusStreak >= 60,
+  },
+  {
+    id: "streak_100",
+    name: "Century of Care",
+    description: "Maintain a 100-day focus streak",
+    icon: "\u{1F451}",
+    category: "streak",
+    condition: (ctx) => ctx.focusStreak >= 100,
   },
 
   // Time
   {
     id: "night_owl",
     name: "Night Owl",
-    description: "Perform a care action at night",
+    description: "Complete a focus session at night",
     icon: "\u{1F319}",
     category: "time",
-    condition: (ctx) => ctx.lastCareActionTimeOfDay === "night",
+    condition: (ctx) => ctx.lastFocusTimeOfDay === "night",
   },
   {
     id: "early_bird",
     name: "Early Bird",
-    description: "Perform a care action in the morning",
+    description: "Complete a focus session in the morning",
     icon: "\u{1F305}",
     category: "time",
-    condition: (ctx) => ctx.lastCareActionTimeOfDay === "morning",
+    condition: (ctx) => ctx.lastFocusTimeOfDay === "morning",
   },
 
   // Chat

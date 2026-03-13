@@ -173,4 +173,14 @@ describe("rollForDiscovery", () => {
     // High luck should generally produce more hits (statistical, not guaranteed)
     expect(highHits).toBeGreaterThanOrEqual(lowHits * 0.5);
   });
+
+  it("directBonus increases discovery rate beyond base + luck", () => {
+    const eligible = [testSpecimens[1]];
+    const noBonus = Array.from({ length: 500 }, () => rollForDiscovery(eligible, 0, 0));
+    const withBonus = Array.from({ length: 500 }, () => rollForDiscovery(eligible, 0, 0.15));
+    const noHits = noBonus.filter((r) => r !== null).length;
+    const bonusHits = withBonus.filter((r) => r !== null).length;
+    // With 0.15 direct bonus, chance goes from ~15% to ~30%, so bonus should reliably win
+    expect(bonusHits).toBeGreaterThan(noHits);
+  });
 });

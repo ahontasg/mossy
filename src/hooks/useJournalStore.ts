@@ -1,8 +1,10 @@
 import { load } from "@tauri-apps/plugin-store";
 import { useJournalStore } from "../stores/journalStore";
 import { useCreatureStore } from "../stores/creatureStore";
+import { useFocusStore } from "../stores/focusStore";
 import { SPECIMENS } from "../features/journal/data/specimens";
 import { getEligibleSpecimens, rollForDiscovery, type DiscoveryContext } from "../features/journal/lib/discoveryEngine";
+import { FOCUS_DISCOVERY_LUCK_BONUS } from "../features/focus/lib/focusRewards";
 import { getTimeOfDay } from "../lib/time";
 import { getSeason } from "../lib/season";
 import type { DiscoveredSpecimen } from "../types";
@@ -37,7 +39,7 @@ export async function initJournalPersistence() {
   discoveryInterval = setInterval(attemptDiscovery, 5 * 60_000);
 }
 
-function attemptDiscovery() {
+export function attemptDiscovery() {
   const { stats, level, growthStage, streak } = useCreatureStore.getState();
   const ctx: DiscoveryContext = {
     timeOfDay: getTimeOfDay(),
@@ -52,7 +54,8 @@ function attemptDiscovery() {
   const eligible = getEligibleSpecimens(SPECIMENS, discoveredIds, ctx);
 
   const avgStats = (stats.hunger + stats.hydration + stats.happiness + stats.energy) / 4;
-  const result = rollForDiscovery(eligible, avgStats / 10);
+  const focusBonus = useFocusStore.getState().completedSessionsToday > 0 ? FOCUS_DISCOVERY_LUCK_BONUS : 0;
+  const result = rollForDiscovery(eligible, avgStats / 10, focusBonus);
 
   if (result) {
     useJournalStore.getState().addDiscovery(result.id);

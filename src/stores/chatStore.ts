@@ -2,7 +2,10 @@ import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { invoke, Channel } from "../lib/tauri";
 import { buildSystemPrompt } from "../features/chat/lib/systemPrompt";
+import { parseIntent } from "../features/chat/lib/intentParser";
+import { executeIntent } from "../features/chat/lib/actionExecutor";
 import { useCreatureStore } from "./creatureStore";
+import { useFocusStore } from "./focusStore";
 import type { ChatMessage, LlmStatus, ChatEvent, PullEvent, Season } from "../types";
 
 const SLIDING_WINDOW = 6;
@@ -33,6 +36,7 @@ interface ChatStore {
 
   toggleChat: () => void;
   sendMessage: (text: string) => Promise<void>;
+  injectProactiveMessage: (content: string) => void;
   checkLlmStatus: () => Promise<void>;
   downloadModel: () => Promise<void>;
   clearHistory: () => void;
@@ -52,6 +56,17 @@ export const useChatStore = create<ChatStore>()(
       set((s) => ({ isOpen: !s.isOpen }));
     },
 
+    injectProactiveMessage: (content: string) => {
+      set((s) => ({
+        messages: [...s.messages, {
+          id: nextId(),
+          role: "assistant" as const,
+          content,
+          timestamp: Date.now(),
+        }],
+      }));
+    },
+
     sendMessage: async (text: string) => {
       const userMessage: ChatMessage = {
         id: nextId(),
@@ -66,9 +81,38 @@ export const useChatStore = create<ChatStore>()(
         streamingText: "",
       }));
 
+      // Intent parsing intercept — handle commands without LLM
+      const intent = parseIntent(text);
+      if (intent.type !== "none") {
+        const result = executeIntent(intent);
+        if (result.executed) {
+          const assistantMessage: ChatMessage = {
+            id: nextId(),
+            role: "assistant",
+            content: result.response ?? "",
+            timestamp: Date.now(),
+          };
+          set((s) => ({
+            messages: [...s.messages, assistantMessage],
+            isStreaming: false,
+            streamingText: "",
+          }));
+          useCreatureStore.getState().addXp(10);
+          useCreatureStore.getState().focusCare("happiness", 10);
+          return;
+        }
+      }
+
       const { stats, mood, level } = useCreatureStore.getState();
       const season = document.documentElement.getAttribute("data-season") as Season | null;
-      const systemPrompt = buildSystemPrompt(stats, mood, level, season ?? undefined);
+      const focusState = useFocusStore.getState();
+      const focusContext = focusState.totalFocusMinutes > 0 ? {
+        todayFocusMinutes: focusState.todayFocusMinutes,
+        completedSessionsToday: focusState.completedSessionsToday,
+        focusStreak: focusState.focusStreak,
+        status: focusState.status,
+      } : undefined;
+      const systemPrompt = buildSystemPrompt(stats, mood, level, season ?? undefined, focusContext);
 
       // Build sliding window of messages for context, enforcing alternating roles
       const allMessages = get()
@@ -110,8 +154,9 @@ export const useChatStore = create<ChatStore>()(
               isStreaming: false,
               streamingText: "",
             }));
-            // Award XP for conversation
-            useCreatureStore.getState().addXp(5);
+            // Award XP for conversation + happiness boost
+            useCreatureStore.getState().addXp(10);
+            useCreatureStore.getState().focusCare("happiness", 10);
             break;
           }
           case "error":

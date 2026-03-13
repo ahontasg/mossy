@@ -67,11 +67,12 @@ const RARITY_WEIGHTS: Record<SpecimenRarity, number> = {
 export function rollForDiscovery(
   eligible: SpecimenDefinition[],
   luckBonus: number = 0,
+  directBonus: number = 0,
 ): SpecimenDefinition | null {
   if (eligible.length === 0) return null;
 
-  // Base 15% chance + luck bonus (0-10% from avg stats / 10)
-  const rollChance = 0.15 + Math.min(0.10, luckBonus / 100);
+  // Base 15% chance + luck bonus (0-10% from avg stats / 10) + direct bonus (e.g. focus boost)
+  const rollChance = 0.15 + Math.min(0.10, luckBonus / 100) + directBonus;
   if (Math.random() > rollChance) return null;
 
   // Build weighted pool from eligible specimens

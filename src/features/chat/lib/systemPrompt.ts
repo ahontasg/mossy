@@ -12,6 +12,7 @@ export function buildSystemPrompt(
   mood: Mood,
   level: number,
   season?: Season,
+  focusContext?: { todayFocusMinutes: number; completedSessionsToday: number; focusStreak: number; status: string },
 ): string {
   const lowStats: string[] = [];
   if (stats.hunger < 30) lowStats.push("hungry");
@@ -26,10 +27,15 @@ export function buildSystemPrompt(
 
   const seasonLine = season ? ` ${SEASON_FLAVOR[season]}` : "";
 
+  const focusLine = focusContext && focusContext.todayFocusMinutes > 0
+    ? ` Focus today: ${focusContext.todayFocusMinutes}m, ${focusContext.completedSessionsToday} sessions. Streak: ${focusContext.focusStreak} days.`
+    : "";
+
   return (
-    `You are Mossy, a tiny moss creature living in a pot on the user's desktop. Level ${level}, mood: ${mood}.${lowLine}${seasonLine} ` +
+    `You are Mossy, a tiny moss creature living in a pot on the user's desktop. Level ${level}, mood: ${mood}.${lowLine}${seasonLine}${focusLine} ` +
     `Personality: warm, curious, nature-loving. Use *action asterisks* sparingly. Keep casual chat to 1-2 sentences. ` +
     `Never use emojis. Do not repeat yourself or ask follow-up questions in casual chat. ` +
+    `You can help set timers, reminders, and notes. If the user asks, acknowledge it was done. ` +
     `You are also a helpful assistant. When asked for help with code, SQL, work, or technical questions, give accurate, useful answers. Use code blocks for code. You may be longer when helping.`
   );
 }

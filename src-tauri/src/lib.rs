@@ -1,5 +1,5 @@
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+    menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
     Emitter, Manager,
 };
@@ -26,17 +26,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let show_item = MenuItem::with_id(app, "show", "Show/Hide Mossy", true, None::<&str>)?;
-            let care_feed = MenuItem::with_id(app, "care-feed", "Feed", true, None::<&str>)?;
-            let care_water = MenuItem::with_id(app, "care-water", "Water", true, None::<&str>)?;
-            let care_pet = MenuItem::with_id(app, "care-pet", "Pet", true, None::<&str>)?;
-            let care_sunlight =
-                MenuItem::with_id(app, "care-sunlight", "Sunlight", true, None::<&str>)?;
-            let quick_care = Submenu::with_items(
-                app,
-                "Quick Care",
-                true,
-                &[&care_feed, &care_water, &care_pet, &care_sunlight],
-            )?;
             let separator = PredefinedMenuItem::separator(app)?;
             let settings_item =
                 MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
@@ -45,7 +34,6 @@ pub fn run() {
                 app,
                 &[
                     &show_item,
-                    &quick_care,
                     &separator,
                     &settings_item,
                     &quit_item,
@@ -87,9 +75,6 @@ pub fn run() {
                         }
                         "quit" => {
                             app.exit(0);
-                        }
-                        _ if id.starts_with("care-") => {
-                            let _ = app.emit("care-action", &id[5..]);
                         }
                         _ => {}
                     }

@@ -1,4 +1,4 @@
-import type { ActiveQuest, QuestTemplate, CareAction, CreatureStats, TimeOfDay } from "../../../types";
+import type { ActiveQuest, QuestTemplate, TimeOfDay } from "../../../types";
 
 function updateQuest(
   quests: ActiveQuest[],
@@ -20,21 +20,81 @@ function updateQuest(
   return changed ? updated : quests;
 }
 
-export function trackCareAction(
+/** Track focus session completions. */
+export function trackFocusSession(
   quests: ActiveQuest[],
   templateMap: Map<string, QuestTemplate>,
-  action: CareAction,
+  completedSessionsToday: number,
+  todayFocusMinutes: number,
 ): ActiveQuest[] {
   return updateQuest(quests, templateMap, (template, quest) => {
-    if (template.type === "care_count" && template.targetKey === action) {
-      const progress = quest.progress + 1;
+    if (template.type === "focus_sessions") {
+      const progress = Math.min(completedSessionsToday, template.targetValue);
+      if (progress === quest.progress) return null;
       const completed = progress >= template.targetValue;
       return { ...quest, progress, completed, completedAt: completed ? Date.now() : null };
     }
-    if (template.type === "care_any_count") {
-      const progress = quest.progress + 1;
+    if (template.type === "focus_cycle") {
+      const progress = Math.min(completedSessionsToday, template.targetValue);
+      if (progress === quest.progress) return null;
       const completed = progress >= template.targetValue;
       return { ...quest, progress, completed, completedAt: completed ? Date.now() : null };
+    }
+    if (template.type === "focus_minutes") {
+      const progress = Math.min(todayFocusMinutes, template.targetValue);
+      if (progress === quest.progress) return null;
+      const completed = progress >= template.targetValue;
+      return { ...quest, progress, completed, completedAt: completed ? Date.now() : null };
+    }
+    return null;
+  });
+}
+
+/** Track game plays. */
+export function trackGamePlay(
+  quests: ActiveQuest[],
+  templateMap: Map<string, QuestTemplate>,
+  gamesPlayedToday: number,
+): ActiveQuest[] {
+  return updateQuest(quests, templateMap, (template, quest) => {
+    if (template.type === "game_play") {
+      const progress = Math.min(gamesPlayedToday, template.targetValue);
+      if (progress === quest.progress) return null;
+      const completed = progress >= template.targetValue;
+      return { ...quest, progress, completed, completedAt: completed ? Date.now() : null };
+    }
+    return null;
+  });
+}
+
+/** Track game high score achievements. */
+export function trackGameHighScore(
+  quests: ActiveQuest[],
+  templateMap: Map<string, QuestTemplate>,
+  gameId: string,
+  isNewRecord: boolean,
+): ActiveQuest[] {
+  if (!isNewRecord) return quests;
+  return updateQuest(quests, templateMap, (template, quest) => {
+    if (template.type === "game_high_score" && template.targetKey === gameId) {
+      if (quest.progress >= 1) return null;
+      return { ...quest, progress: 1, completed: true, completedAt: Date.now() };
+    }
+    return null;
+  });
+}
+
+/** Track daily challenge completion. */
+export function trackChallengeComplete(
+  quests: ActiveQuest[],
+  templateMap: Map<string, QuestTemplate>,
+  completedToday: boolean,
+): ActiveQuest[] {
+  if (!completedToday) return quests;
+  return updateQuest(quests, templateMap, (template, quest) => {
+    if (template.type === "challenge_complete") {
+      if (quest.progress >= 1) return null;
+      return { ...quest, progress: 1, completed: true, completedAt: Date.now() };
     }
     return null;
   });
@@ -53,44 +113,6 @@ export function trackChatMessage(
       return { ...quest, progress, completed, completedAt: completed ? Date.now() : null };
     }
     return null;
-  });
-}
-
-export function trackStatCheck(
-  quests: ActiveQuest[],
-  templateMap: Map<string, QuestTemplate>,
-  stats: CreatureStats,
-  now: number,
-): ActiveQuest[] {
-  return updateQuest(quests, templateMap, (template, quest) => {
-    if (template.type !== "stat_threshold") return null;
-    const threshold = template.targetValue;
-    const allAbove =
-      stats.hunger >= threshold &&
-      stats.hydration >= threshold &&
-      stats.happiness >= threshold &&
-      stats.energy >= threshold;
-
-    if (allAbove) {
-      if (quest.thresholdMetSince === null) {
-        return { ...quest, thresholdMetSince: now };
-      }
-      const elapsed = (now - quest.thresholdMetSince) / 60_000;
-      const progress = Math.min(elapsed, template.durationMinutes ?? 0);
-      const completed = elapsed >= (template.durationMinutes ?? 0);
-      return {
-        ...quest,
-        progress: Math.round(progress),
-        completed,
-        completedAt: completed ? now : null,
-      };
-    } else {
-      // Stats dropped — reset timer
-      if (quest.thresholdMetSince !== null) {
-        return { ...quest, thresholdMetSince: null, progress: 0 };
-      }
-      return null;
-    }
   });
 }
 
@@ -135,6 +157,22 @@ export function trackChatTime(
     if (template.type === "chat_time" && template.targetKey === timeOfDay) {
       if (quest.progress >= 1) return null;
       return { ...quest, progress: 1, completed: true, completedAt: Date.now() };
+    }
+    return null;
+  });
+}
+
+export function trackReminderSet(
+  quests: ActiveQuest[],
+  templateMap: Map<string, QuestTemplate>,
+  reminderCount: number,
+): ActiveQuest[] {
+  return updateQuest(quests, templateMap, (template, quest) => {
+    if (template.type === "set_reminder") {
+      const progress = Math.min(reminderCount, template.targetValue);
+      if (progress === quest.progress) return null;
+      const completed = progress >= template.targetValue;
+      return { ...quest, progress, completed, completedAt: completed ? Date.now() : null };
     }
     return null;
   });
