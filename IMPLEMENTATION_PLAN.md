@@ -458,93 +458,300 @@ Leaderboard scores are **computed from validated `care_events`**, not submitted 
 
 ---
 
-## Phase 5: Polish & Distribution (Weeks 17–20)
+## Phase 5: Focus Timer + Care System Rework
 
-**Goal**: Make Mossy installable, auto-updating, and delightful.
+**Goal**: Replace the 4 manual care buttons with a Pomodoro focus timer. Stats are now driven by focus sessions, breaks, and engagement. This is the foundational change everything else builds on.
 
-### 5.1 Installer & Auto-Updates (Week 17)
+### 5.1 Focus Timer Core
 
-- Generate Ed25519 signing keypair: `bun tauri signer generate`
-- Configure `tauri-plugin-updater` with GitHub Releases endpoint
-- Build installers: `.dmg` (macOS), `.msi` (Windows), `.AppImage` (Linux)
-- `tauri-action` GitHub Action for automated builds + `latest.json` manifest
+- Built-in Pomodoro: 25 min focus → 5 min break → repeat 4x → 15 min long break
+- Customizable durations in settings
+- Moss enters "focused" animation state during sessions (eyes gently closed, leaves swaying, sparkle particles, saturation up)
+- Timer completion: celebration animation + specimen discovery roll with boosted luck
+- Timer uses `startedAt` timestamps (not `setInterval` decrements) to avoid WebView drift
+- Persist `startedAt` to store so timer survives window hide/show
+
+**New files:**
+```
+src/features/focus/
+  FocusPanel.tsx              # Expanded view (380x560)
+  FocusToggle.tsx             # Compact mode timer indicator
+  components/
+    TimerRing.tsx             # SVG circular countdown
+    SessionProgress.tsx       # 4-segment Pomodoro cycle indicator
+    BreakMenu.tsx             # Quick actions during breaks
+    FocusCompletionPopup.tsx  # Session complete toast
+  lib/
+    focusTimer.ts             # Pure timer logic (timestamp-based)
+    focusRewards.ts           # XP/stat/discovery bonus calculations
+src/stores/focusStore.ts      # Timer state + focus stats + persistence
+src/hooks/useFocusStore.ts    # Focus persistence bridge
+```
+
+**Store shape:**
+```typescript
+interface FocusState {
+  status: 'idle' | 'focus' | 'short_break' | 'long_break' | 'paused';
+  sessionIndex: number;          // 0-3 in cycle
+  remainingMs: number;
+  startedAt: number | null;
+  pausedAt: number | null;
+  focusDurationMs: number;       // default 25 * 60 * 1000
+  shortBreakMs: number;          // default 5 * 60 * 1000
+  longBreakMs: number;           // default 15 * 60 * 1000
+  todayFocusMinutes: number;
+  totalFocusMinutes: number;
+  focusStreak: number;
+  lastFocusDate: string | null;
+  completedSessionsToday: number;
+}
+```
+
+### 5.2 Care System Rework
+
+Remove the 4 care buttons. Stats remain as visual indicators but are now driven by meaningful actions:
+
+| Stat | New Driver |
+|------|-----------|
+| **Energy** | Focus session completion (+25-30) |
+| **Hydration** | Taking breaks on time (+20-25) |
+| **Happiness** | Mini-game play (+15), chat (+10), daily challenge (+15) |
+| **Hunger** | General daily activity — any focus/game/challenge (+10-15) |
+
+- Stat decay halves during active focus ("Mossy is resting while you work")
+- Stat decay runs normally when idle
+- Focus session completion: +30 XP (primary XP source)
+
+**Files modified:**
+- `src/stores/creatureStore.ts` — Remove `feed()`, `water()`, `pet()`, `sunlight()`, care cooldowns. Add `focusCare(stat, amount)`. Rework `decayStats()` for focus-aware decay rate. Keep `addXp()`, `recordCareDay()`, mood derivation, growth stages.
+- `src/features/creature/components/CareButtons.tsx` — **Rewrite** into compact focus HUD: timer status + stat bars + focus start button + hub toggle
+
+### 5.3 Quest System Rewire
+
+Replace all 21 care-button quest templates with ~20 new focus/game/challenge/chat templates:
+- Focus: "Complete 2 focus sessions" (+40 XP), "Focus 50 total minutes" (+35 XP), "Complete a full 4-session cycle" (+50 XP)
+- Games: "Play a brain break game" (+20 XP), "Beat your memory match record" (+30 XP)
+- Challenge: "Complete today's Daily Challenge" (+30 XP)
+- Chat/Assistant: "Chat with Mossy 3 times" (+15 XP), "Set a reminder" (+10 XP)
+- Streak: "Maintain a 7-day focus streak" (+60 XP)
+
+**Files modified:**
+- `src/features/quests/data/questTemplates.ts` — Replace all templates
+- `src/features/quests/lib/questTracker.ts` — Replace `trackCareAction` with `trackFocusSession`, `trackGamePlay`, `trackChallengeComplete`
+- `src/stores/questStore.ts` — Update type definitions
+
+### 5.4 Achievement System Rewire
+
+Rewrite 15 achievement definitions for focus-driven milestones:
+- Growth: "First Focus" (1 session), "Deep Work" (4 sessions/day), growth stages stay
+- Streak: Focus streak at 7, 14, 30, 60, 100 days
+- Time: "Early Bird" / "Night Owl" (focus at specific times)
+- Discovery: Stay as-is (already decoupled from care buttons)
+
+**Files modified:**
+- `src/features/achievements/data/achievements.ts` — Rewrite all definitions
+- `src/stores/achievementStore.ts` — New condition evaluators
+- `src/hooks/useAchievementStore.ts` — Rewire cross-store subscriptions to focusStore
+
+### 5.5 Leaderboard + Sync Rewire
+
+Update `CareEventType` union in `src/types/index.ts`:
+```typescript
+type CareEventType =
+  | 'focus_complete' | 'game_score' | 'challenge_complete'
+  | 'chat' | 'quest_complete' | 'level_up';
+```
+
+Update `CARE_EVENT_XP` in `src/stores/syncStore.ts`:
+```typescript
+export const CARE_EVENT_XP: Record<CareEventType, number> = {
+  focus_complete: 30,
+  game_score: 0,             // variable
+  challenge_complete: 0,     // variable
+  chat: 10,
+  quest_complete: 0,         // variable
+  level_up: 0,
+};
+```
+
+**Sync store subscriptions** (`src/hooks/useSyncStore.ts`):
+- Remove: subscriptions on `creatureStore.lastCareAction` (feed/water/pet/sunlight)
+- Add: subscription on `focusStore.completedSessionsToday` → enqueue `focus_complete` event
+- Keep: chat and quest_complete subscriptions (update chat XP from 5→10)
+
+**Supabase migration**: `supabase/migrations/002_phase5_focus_events.sql`
+- Replace `submit_care_event` RPC with new event type validation (keep legacy types for historical data)
+- Replace `leaderboard_weekly` / `leaderboard_monthly` views with focus/game columns
+
+### 5.6 Compact Mode Navigation Redesign
+
+Replace the toggle row with a **hub button** that opens a quick-access grid of feature icons. Focus timer gets a dedicated always-visible spot.
+
+**Files modified:**
+- `src/App.tsx` — Hub navigation component
+- New: `src/components/HubMenu.tsx` — Quick-access grid overlay
+
+### Milestone: Mossy's engagement loop shifts from button-tapping to real productivity ✓
+
+---
+
+## Phase 6: Assistant Features + Chat Enhancement
+
+**Goal**: Transform Mossy's LLM chat from flavor text into a lightweight desk assistant with notes, reminders, and contextual interactions.
+
+### 6.1 Chat Enhancement
+
+- **Contextual system prompt**: Include focus stats, streak, recent activity in the system prompt
+- **Proactive Mossy**: During breaks, Mossy initiates with context-aware messages
+- **Action triggers from chat**: "set a timer for 10 minutes" → starts a timer. "Remind me to check the deploy" → creates a reminder.
+- **Intent parsing**: Keyword-based regex first, LLM fallback for ambiguous input
+- **Chat XP**: 10 XP per conversation (up from 5)
+
+### 6.2 Quick Notes
+
+- Timestamped note list (Zustand → tauri-plugin-store)
+- Add via chat ("Note: standup at 2pm") or dedicated input
+- Simple list with delete — no rich text, no folders
+
+### 6.3 Reminders
+
+- Time-based: "Remind me in 30 minutes to check the build"
+- Stored with trigger timestamp, toast popup when due
+- Check interval: 60s against `Date.now()`
+- Max 10 active reminders
+- Toast: Mossy saying "Hey! You asked me to remind you about: ..."
+
+### 6.4 Break Suggestions + Daily Brief
+
+- After each focus session, contextual break suggestion from curated pool (~20-30)
+- On first open each day, Mossy greets with yesterday's stats + today's streak
+
+### Milestone: Mossy becomes a useful desk assistant, not just a pet ✓
+
+---
+
+## Phase 7: Brain Break Micro-Games
+
+**Goal**: Two tight micro-games playable during Pomodoro breaks. Free during breaks, token-gated otherwise.
+
+### 7.1 Game Infrastructure
+
+- Game token system: 1 token earned per completed focus session, 1 spent per game outside of break time, free during breaks
+- High score persistence + "New Record!" animation
+- Scores sync to team leaderboard
+
+### 7.2 Specimen Memory Match
+
+- 4x3 grid of face-down cards using discovered specimen pixel art
+- Match pairs within 60 seconds
+- Score = pairs matched + time bonus
+- Uses only player's discovered specimens (personalizes, rewards journal)
+
+### 7.3 Mossy Says (Pattern Recall)
+
+- Simon-says with 4 stat icons (Energy/Hydration/Happiness/Hunger)
+- Mossy flashes sequence → player repeats → grows by 1 each round
+- 120 seconds max or until failure
+- Score = longest correct sequence
+
+### Milestone: Breaks are genuinely fun and earned through focus ✓
+
+---
+
+## Phase 8: Daily Challenge
+
+**Goal**: One puzzle per day — "Mossy's Word Garden." Wordle-model scarcity + shareable results.
+
+### 8.1 Word List + Generator
+
+- ~500 curated nature words (fern, lichen, spore, canopy, mycelium, etc.)
+- Daily 5-word selection via seeded PRNG (reuse `mulberry32`)
+- Deterministic, offline, no LLM needed
+
+### 8.2 Puzzle UI
+
+- Scrambled word with tappable/draggable letter tiles
+- Unscramble 5 words in order, timer runs
+- Score = speed + streak bonus (consecutive days completed)
+- +25 XP for completion
+- Shareable emoji result card
+
+### Milestone: Daily scarcity creates a compelling return loop ✓
+
+---
+
+## Phase 9: Moss Mutations (Cosmetic Progression)
+
+**Goal**: Visible cosmetic changes earned through real gameplay milestones.
+
+### 9.1 Mutation Definitions
+
+~8-12 mutations, each an SVG overlay + palette override:
+- "Crystalline" — 10 total focus hours → icy blue palette
+- "Luminous" — 30 daily challenges → glowing yellow-green
+- "Neural" — 50+ pattern recall score → pulsing nerve overlay
+- "Mycelial" — all 32 specimens → network thread overlay
+- "Deep Focus" — 100 total focus hours → zen aura
+- "Blazing" — 60-day focus streak → ember overlay
+- "Iridescent" — all achievements + all specimens → rainbow shimmer
+
+### 9.2 Gallery + Selection
+
+- Gallery UI same pattern as AchievementGallery (locked/unlocked grid)
+- User selects active mutation (stored in mutationStore)
+- Mutation applied as overlay layer in MossCreature SVG
+
+### Milestone: Long-term players have visible "flex" cosmetics ✓
+
+---
+
+## Phase 10: Polish & Distribution
+
+**Goal**: Package everything up for distribution. Build features first, package last.
+
+### 10.1 Installer & Auto-Updates
+
+- Ed25519 signing keypair, `tauri-plugin-updater` with GitHub Releases
+- `.dmg` (macOS), `.msi` (Windows), `.AppImage` (Linux)
+- `tauri-action` GitHub Action for automated builds
 - App checks for updates on launch
 
-### 5.2 Onboarding Flow (Week 18)
+### 10.2 Onboarding Flow (Updated for Focus-First)
 
-90-second first-launch experience (no account required):
+90-second first-launch experience:
 1. Empty terrarium appears
 2. "Tap to scatter moss spores" → particle animation
 3. "Give your terrarium a name" → text input
 4. First sprout appears → Mossy introduces itself
-5. First care action tutorial (mist the terrarium)
-6. "Come back tomorrow to see what grew!" → plants the return hook
-7. Model download if not present (see Phase 2.5)
+5. **"Start your first focus session to help Mossy grow!"** → teaches focus timer
+6. "Come back tomorrow to see how Mossy grew!" → plants the return hook
+7. Model download if not present
 
-### 5.3 Sound Design (Week 18–19)
+### 10.3 QA & Cross-Platform
 
-- Ambient terrarium sounds (gentle rain, soft wind — toggleable)
-- Care action sounds: spray for watering, soft crunch for feeding
-- Discovery chime for new specimens
-- Mossy's "voice": soft chirps during chat (not actual speech)
-- **Mute by default** — respect the workplace
-
-### 5.4 Notifications (Week 19)
-
-- Native OS notifications via `tauri-plugin-notification`
-- Opt-in, gentle, max 1/day:
-  - "Something new appeared in your terrarium 🌿"
-  - "Mossy is thriving today! ✨"
-- **Never** "Mossy misses you" or guilt-based messaging
-
-### 5.5 QA & Cross-Platform (Week 20)
-
-- Test on macOS 13+, Windows 10/11, target Linux distros
-- Transparent window rendering on each platform
-- System tray behavior (left-click, right-click)
-- High-DPI and dark/light OS themes
-- Auto-update flow end-to-end
-- Battery/resource impact: leave running 8 hours, check CPU/memory
+- macOS 13+, Windows 10/11, target Linux distros
+- Transparent window, tray behavior, high-DPI, dark/light themes
+- Auto-update flow, battery/resource impact
 - llama-server sidecar on each platform
+- Focus timer accuracy across platforms
 
 ### Milestone: Mossy is installable, auto-updating, polished for distribution ✓
 
 ---
 
-## Phase 6: Mini-Games & Growth (Months 6–12+)
+## Dependency Graph
 
-**Goal**: Deepen engagement with competitive mini-games, shared experiences, and long-term growth systems.
+```
+Phase 5 (Focus + Care Rework) ──┐
+                                 ├──▶ Phase 7 (Mini-Games — needs break gate + tokens)
+Phase 6 (Assistant + Chat) ──────┤
+                                 ├──▶ Phase 9 (Mutations — needs all milestone sources)
+Phase 8 (Daily Challenge) ───────┘
+                                       │
+Phase 10 (Polish & Distribution) ◀─────┘  (ships last)
+```
 
-### 6.1 Mini-Games
-
-- **Watering accuracy game**: tap-timing minigame, high scores go to leaderboard
-- **Specimen trivia**: Mossy quizzes you on discovered organisms
-- **Growth race**: who can level up Mossy the fastest in a week
-- Mini-game scores contribute to leaderboard rankings
-- Unlock new mini-games at growth stage milestones
-
-### 6.2 Team Terrariums (Deferred from Phase 4)
-
-- Separate expanded view showing all team members' Mossies in a shared garden
-- Each creature rendered at its correct growth stage, mood, and seasonal overlay
-- Team aggregate stats: combined level, collective streak, team specimens
-- Likely needs its own window/panel (not the 256x256 main window)
-- Depends on: Supabase real-time sync of creature state (beyond care events)
-
-### 6.3 Long-Term Growth
-
-Based on real user feedback:
-- Which features get used most? Double down.
-- Terrarium customization (containers, backgrounds, decorations)
-- Terrarium visiting (view friends' terrariums, leave gifts)
-- Seasonal events (spring bloom festival, winter frost)
-- Productivity integrations (break reminders, task celebrations)
-
-### 6.4 Mobile Expansion
-
-- Tauri Mobile (shared React codebase)
-- Sync state between desktop and mobile
-- Push notifications for mobile
+Phases 6 and 8 can start in parallel with Phase 5's later stages.
 
 ---
 

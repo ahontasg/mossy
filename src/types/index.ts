@@ -6,7 +6,7 @@ export type TimeOfDay = "morning" | "afternoon" | "evening" | "night";
 
 export type Season = "spring" | "summer" | "autumn" | "winter";
 
-export type CareAction = "feed" | "water" | "pet" | "sunlight";
+export type CareAction = "focus_complete" | "chat" | "game" | "challenge";
 
 export interface CreatureStats {
   hunger: number;
@@ -118,14 +118,18 @@ export interface DiscoveredSpecimen {
 // ── Quest types ──
 
 export type QuestType =
-  | "care_count"
-  | "care_any_count"
-  | "stat_threshold"
+  | "focus_sessions"
+  | "focus_minutes"
+  | "focus_cycle"
+  | "game_play"
+  | "game_high_score"
+  | "challenge_complete"
   | "chat_count"
   | "chat_time"
   | "reach_level"
   | "streak_reach"
-  | "discover_specimen";
+  | "discover_specimen"
+  | "set_reminder";
 
 export interface QuestTemplate {
   id: string;
@@ -164,10 +168,9 @@ export interface UnlockedAchievement {
 export type AuthStatus = "signed_out" | "loading" | "signed_in";
 
 export type CareEventType =
-  | "feed"
-  | "water"
-  | "pet"
-  | "sunlight"
+  | "focus_complete"
+  | "game_score"
+  | "challenge_complete"
   | "chat"
   | "quest_complete"
   | "level_up";
@@ -201,10 +204,37 @@ export interface LeaderboardEntry {
   xp: number;
   activeDays: number;
   specimens: number;
+  focusSessions: number;
+  focusMinutes: number;
+  topGameScore: number;
   isCurrentUser: boolean;
 }
 
 export type LeaderboardPeriod = "weekly" | "monthly";
+
+// ── Assistant types ──
+
+export interface Note {
+  id: string;
+  content: string;
+  createdAt: number;
+}
+
+export interface Reminder {
+  id: string;
+  message: string;
+  triggerAt: number;
+  createdAt: number;
+  fired: boolean;
+}
+
+export type IntentType = 'set_timer' | 'set_reminder' | 'add_note' | 'show_notes' | 'none';
+
+export interface ParsedIntent {
+  type: IntentType;
+  text?: string;
+  durationMs?: number;
+}
 
 export interface FeedItem {
   id: string;

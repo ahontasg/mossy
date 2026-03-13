@@ -25,8 +25,7 @@ export function MossCreature({ timeOfDay: _timeOfDay, season }: MossCreatureProp
   const mood = useCreatureStore((s) => s.mood);
   const growthStage = useCreatureStore((s) => s.growthStage);
   const stats = useCreatureStore((s) => s.stats);
-  const pet = useCreatureStore((s) => s.pet);
-
+  const isFocusing = useCreatureStore((s) => s.isFocusing);
   const breathFrame = useBreathing();
   const isBlinking = useBlink(mood);
   const { isTalking, talkFrame } = useTalking();
@@ -47,7 +46,8 @@ export function MossCreature({ timeOfDay: _timeOfDay, season }: MossCreatureProp
     [season],
   );
 
-  const frameKey = isTalking ? talkFrame : isBlinking ? "blink" : breathFrame;
+  const focusedAndAwake = isFocusing && !isDormant(stats);
+  const frameKey = focusedAndAwake ? "blink" : isTalking ? talkFrame : isBlinking ? "blink" : breathFrame;
   const baseFrame = FRAMES[mood][frameKey];
   const accessoryOverlay = ACCESSORIES[growthStage];
   let mergedFrame = mergeFrames(baseFrame, accessoryOverlay);
@@ -61,14 +61,13 @@ export function MossCreature({ timeOfDay: _timeOfDay, season }: MossCreatureProp
   }
 
   const handleClick = useCallback(() => {
-    pet();
-    // Apply bounce animation
+    // Apply bounce animation on click
     const svg = svgRef.current;
     if (svg) {
       svg.classList.add("pet-bounce");
       setTimeout(() => svg.classList.remove("pet-bounce"), 400);
     }
-  }, [pet]);
+  }, []);
 
   return (
     <svg
@@ -78,7 +77,13 @@ export function MossCreature({ timeOfDay: _timeOfDay, season }: MossCreatureProp
       height={256}
       shapeRendering="crispEdges"
     >
-      <g transform={`translate(${GRID_OFFSET_X}, ${GRID_OFFSET_Y})`}>
+      <g
+        transform={`translate(${GRID_OFFSET_X}, ${GRID_OFFSET_Y})`}
+        style={{
+          filter: focusedAndAwake ? "saturate(1.3) brightness(1.05)" : undefined,
+          transition: "filter 0.5s ease",
+        }}
+      >
         <PixelGrid frame={mergedFrame} colorMap={colorMap} />
         <ParticleLayer onSpawnRef={spawnRef} season={season} />
       </g>

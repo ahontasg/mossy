@@ -1,0 +1,68 @@
+import { useEffect, useRef, useState } from "react";
+import { useFocusStore } from "../../stores/focusStore";
+import { computeRemainingMs, formatTimeDisplay } from "./lib/focusTimer";
+
+interface FocusToggleProps {
+  onClick: () => void;
+}
+
+export function FocusToggle({ onClick }: FocusToggleProps) {
+  const status = useFocusStore((s) => s.status);
+  const remainingMs = useFocusStore((s) => s.remainingMs);
+  const startedAt = useFocusStore((s) => s.startedAt);
+  const tick = useFocusStore((s) => s.tick);
+  const [displayMs, setDisplayMs] = useState(remainingMs);
+  const rafRef = useRef<number>(0);
+
+  const isActive = status !== "idle";
+
+  useEffect(() => {
+    if (status === "idle" || status === "paused") {
+      setDisplayMs(remainingMs);
+      return;
+    }
+
+    function animate() {
+      const state = useFocusStore.getState();
+      const now = Date.now();
+      const ms = computeRemainingMs(state, now);
+      setDisplayMs(ms);
+      if (ms <= 0) state.tick();
+      rafRef.current = requestAnimationFrame(animate);
+    }
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [status, startedAt, remainingMs, tick]);
+
+  const isBreak = status === "short_break" || status === "long_break";
+  const bgColor = isActive
+    ? isBreak
+      ? "rgba(66, 165, 245, 0.3)"
+      : "rgba(124, 179, 66, 0.3)"
+    : "rgba(255, 255, 255, 0.08)";
+
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 rounded-lg px-2 py-1 transition-transform hover:scale-105 active:scale-95"
+      style={{ background: bgColor }}
+      title={isActive ? `Focus timer: ${formatTimeDisplay(displayMs)}` : "Start a focus session"}
+    >
+      {isActive ? (
+        <>
+          <span className="text-[10px] leading-none">
+            {isBreak ? "\u2615" : "\u{1F3AF}"}
+          </span>
+          <span className="text-[9px] font-mono font-bold text-white/90 leading-none">
+            {formatTimeDisplay(displayMs)}
+          </span>
+        </>
+      ) : (
+        <span className="text-[10px] leading-none" title="Focus">
+          {"\u{1F3AF}"}
+        </span>
+      )}
+    </button>
+  );
+}

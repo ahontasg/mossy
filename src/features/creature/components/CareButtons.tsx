@@ -1,25 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useCreatureStore } from "../../../stores/creatureStore";
-import { JournalToggle } from "../../journal";
-import { QuestIndicator } from "../../quests";
-import { SocialToggle } from "../../social/components/SocialToggle";
-import { isSupabaseConfigured } from "../../../lib/supabase";
-import { useAuthStore } from "../../../stores/authStore";
-import type { CareAction, GrowthStage } from "../../../types";
+import { useFocusStore } from "../../../stores/focusStore";
+import { FocusToggle } from "../../focus/FocusToggle";
+import type { CreatureStats, GrowthStage } from "../../../types";
 
-const COOLDOWN_MS = 8000;
-
-const CARE_ITEMS: {
-  action: CareAction;
+const STAT_ITEMS: {
+  statKey: keyof CreatureStats;
   label: string;
   icon: string;
-  statKey: "hunger" | "hydration" | "happiness" | "energy";
   color: string;
 }[] = [
-  { action: "feed", label: "Feed", icon: "\u{1F33F}", statKey: "hunger", color: "#7cb342" },
-  { action: "water", label: "Water", icon: "\u{1F4A7}", statKey: "hydration", color: "#42a5f5" },
-  { action: "pet", label: "Pet", icon: "\u{1F49A}", statKey: "happiness", color: "#e57373" },
-  { action: "sunlight", label: "Sun", icon: "\u{2600}\u{FE0F}", statKey: "energy", color: "#ffb74d" },
+  { statKey: "hunger", label: "Hunger", icon: "\u{1F33F}", color: "#7cb342" },
+  { statKey: "hydration", label: "Hydration", icon: "\u{1F4A7}", color: "#42a5f5" },
+  { statKey: "happiness", label: "Happy", icon: "\u{1F49A}", color: "#e57373" },
+  { statKey: "energy", label: "Energy", icon: "\u{2600}\u{FE0F}", color: "#ffb74d" },
 ];
 
 const STAGE_LABELS: Record<GrowthStage, string> = {
@@ -91,149 +84,86 @@ function XpRing({ level, xp, growthStage }: { level: number; xp: number; growthS
 
 function StreakIndicator() {
   const streak = useCreatureStore((s) => s.streak);
-  if (streak.currentStreak === 0) return null;
+  const focusStreak = useFocusStore((s) => s.focusStreak);
+  const displayStreak = Math.max(streak.currentStreak, focusStreak);
+  if (displayStreak === 0) return null;
 
-  const color = getStreakColor(streak.currentStreak);
-  const shieldText = streak.shieldAvailable ? "Shield active" : "Shield used this week";
+  const color = getStreakColor(displayStreak);
 
   return (
     <span
       className="flex items-center gap-0.5 text-[8px] font-bold leading-none"
       style={{ color }}
-      title={`${streak.currentStreak}-day streak! ${shieldText}`}
+      title={`${displayStreak}-day streak`}
     >
       <span className="text-[10px]" style={{ filter: "saturate(1.3)" }}>&#x1F525;</span>
-      {streak.currentStreak}
+      {displayStreak}
     </span>
   );
 }
 
 interface CareButtonsProps {
-  onJournalToggle?: () => void;
-  onQuestToggle?: () => void;
-  onAchievementToggle?: () => void;
-  onSocialToggle?: () => void;
-  onLeaderboardToggle?: () => void;
+  onFocusToggle: () => void;
+  onHubToggle: () => void;
 }
 
-export function CareButtons({ onJournalToggle, onQuestToggle, onAchievementToggle, onSocialToggle, onLeaderboardToggle }: CareButtonsProps) {
+export function CareButtons({ onFocusToggle, onHubToggle }: CareButtonsProps) {
   const stats = useCreatureStore((s) => s.stats);
   const level = useCreatureStore((s) => s.level);
   const xp = useCreatureStore((s) => s.xp);
   const growthStage = useCreatureStore((s) => s.growthStage);
-  const hasTeam = useAuthStore((s) => s.team !== null);
-  const showSocial = isSupabaseConfigured();
-
-  const cooldownTimers = useRef<Map<CareAction, ReturnType<typeof setTimeout>>>(new Map());
-  const [cooldownKeys, setCooldownKeys] = useState<Set<CareAction>>(new Set());
-
-  useEffect(() => {
-    return () => cooldownTimers.current.forEach(clearTimeout);
-  }, []);
-
-  const handleClick = useCallback(
-    (action: CareAction) => {
-      if (cooldownTimers.current.has(action)) return;
-
-      useCreatureStore.getState()[action]();
-
-      setCooldownKeys((prev) => new Set(prev).add(action));
-      const timer = setTimeout(() => {
-        cooldownTimers.current.delete(action);
-        setCooldownKeys((prev) => {
-          const next = new Set(prev);
-          next.delete(action);
-          return next;
-        });
-      }, COOLDOWN_MS);
-      cooldownTimers.current.set(action, timer);
-    },
-    [],
-  );
 
   return (
     <div className="flex flex-col items-center gap-0.5">
-      {/* Meta-indicator row */}
-      {(onJournalToggle || onQuestToggle || onAchievementToggle || (showSocial && onSocialToggle)) && (
-        <div
-          className="flex items-center gap-1 rounded-lg px-2 py-0.5"
-          style={{ background: "rgba(0, 0, 0, 0.25)" }}
-        >
-          {onJournalToggle && <JournalToggle onClick={onJournalToggle} />}
-          {onQuestToggle && <QuestIndicator onClick={onQuestToggle} />}
-          {onAchievementToggle && (
-            <button
-              onClick={onAchievementToggle}
-              className="flex items-center justify-center w-5 h-5 rounded transition-transform hover:scale-110"
-              style={{ background: "rgba(255, 255, 255, 0.08)" }}
-              title="Achievements"
-            >
-              <span className="text-[10px] leading-none">&#x1F3C6;</span>
-            </button>
-          )}
-          {showSocial && onSocialToggle && (
-            <SocialToggle onClick={onSocialToggle} />
-          )}
-          {hasTeam && onLeaderboardToggle && (
-            <button
-              onClick={onLeaderboardToggle}
-              className="flex items-center justify-center w-5 h-5 rounded transition-transform hover:scale-110"
-              style={{ background: "rgba(255, 255, 255, 0.08)" }}
-              title="Leaderboard"
-            >
-              <span className="text-[10px] leading-none">{"\u{1F3C5}"}</span>
-            </button>
-          )}
-        </div>
-      )}
-
       <div
         className="flex items-center gap-1 rounded-xl px-2 py-1.5"
         style={{ background: "rgba(0, 0, 0, 0.35)" }}
       >
-      {/* XP ring + level badge */}
-      <XpRing level={level} xp={xp} growthStage={growthStage} />
+        {/* XP ring + level badge */}
+        <XpRing level={level} xp={xp} growthStage={growthStage} />
 
-      {/* Streak indicator */}
-      <StreakIndicator />
+        {/* Streak indicator */}
+        <StreakIndicator />
 
-      {CARE_ITEMS.map((item) => {
-        const value = stats[item.statKey];
-        const barColor = getBarColor(value, item.color);
-        const onCooldown = cooldownKeys.has(item.action);
-        return (
-          <button
-            key={item.action}
-            onClick={() => handleClick(item.action)}
-            disabled={onCooldown}
-            className="flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1 transition-transform hover:scale-110 active:scale-90 disabled:pointer-events-none"
-            style={{
-              background: "rgba(255, 255, 255, 0.08)",
-              opacity: onCooldown ? 0.4 : 1,
-              transition: "opacity 0.3s",
-            }}
-            title={`${item.label} (${Math.round(value)}%)`}
-          >
-            <span className="text-sm leading-none">{item.icon}</span>
-            {/* Stat bar */}
+        {/* Stat bars (read-only) */}
+        {STAT_ITEMS.map((item) => {
+          const value = stats[item.statKey];
+          const barColor = getBarColor(value, item.color);
+          return (
             <div
-              className="h-[3px] w-6 overflow-hidden rounded-full"
-              style={{ background: "rgba(255, 255, 255, 0.15)" }}
+              key={item.statKey}
+              className="flex flex-col items-center gap-0.5 px-1"
+              title={`${item.label} (${Math.round(value)}%)`}
             >
+              <span className="text-[8px] leading-none">{item.icon}</span>
               <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${Math.max(value, 3)}%`,
-                  background: barColor,
-                }}
-              />
+                className="h-[3px] w-5 overflow-hidden rounded-full"
+                style={{ background: "rgba(255, 255, 255, 0.15)" }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.max(value, 3)}%`,
+                    background: barColor,
+                  }}
+                />
+              </div>
             </div>
-            <span className="text-[7px] leading-none font-medium text-white/50">
-              {item.label}
-            </span>
-          </button>
-        );
-      })}
+          );
+        })}
+
+        {/* Focus timer toggle */}
+        <FocusToggle onClick={onFocusToggle} />
+
+        {/* Hub menu button */}
+        <button
+          onClick={onHubToggle}
+          className="flex items-center justify-center w-5 h-5 rounded transition-transform hover:scale-110"
+          style={{ background: "rgba(255, 255, 255, 0.08)" }}
+          title="Menu"
+        >
+          <span className="text-[10px] leading-none">{"\u2630"}</span>
+        </button>
       </div>
     </div>
   );

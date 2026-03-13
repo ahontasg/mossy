@@ -8,53 +8,41 @@ function resetStore() {
     level: 1,
     growthStage: "sprout",
     mood: "happy",
-    lastCareAction: null,
     lastSave: Date.now(),
     lastLevelUp: null,
     lastXpGain: null,
     streak: { ...DEFAULT_STREAK },
     returnMoment: null,
+    isFocusing: false,
   });
 }
 
 describe("creatureStore", () => {
   beforeEach(resetStore);
 
-  describe("care actions", () => {
-    it("feed increases hunger by 25 and xp by 10", () => {
+  describe("focusCare", () => {
+    it("increases a stat by the given amount", () => {
       useCreatureStore.setState({ stats: { hunger: 50, hydration: 75, happiness: 75, energy: 75 } });
-      useCreatureStore.getState().feed();
+      useCreatureStore.getState().focusCare("hunger", 25);
       expect(useCreatureStore.getState().stats.hunger).toBe(75);
-      expect(useCreatureStore.getState().xp).toBe(10);
-      expect(useCreatureStore.getState().lastCareAction?.type).toBe("feed");
     });
 
-    it("water increases hydration by 30 and xp by 10", () => {
-      useCreatureStore.setState({ stats: { hunger: 75, hydration: 50, happiness: 75, energy: 75 } });
-      useCreatureStore.getState().water();
-      expect(useCreatureStore.getState().stats.hydration).toBe(80);
-      expect(useCreatureStore.getState().xp).toBe(10);
-    });
-
-    it("pet increases happiness by 20 and xp by 5", () => {
-      useCreatureStore.setState({ stats: { hunger: 75, hydration: 75, happiness: 50, energy: 75 } });
-      useCreatureStore.getState().pet();
-      expect(useCreatureStore.getState().stats.happiness).toBe(70);
-      expect(useCreatureStore.getState().xp).toBe(5);
-    });
-
-    it("sunlight increases energy by 20 and xp by 15", () => {
-      useCreatureStore.setState({ stats: { hunger: 75, hydration: 75, happiness: 75, energy: 50 } });
-      useCreatureStore.getState().sunlight();
-      expect(useCreatureStore.getState().stats.energy).toBe(70);
-      expect(useCreatureStore.getState().stats.happiness).toBe(75); // unchanged
-      expect(useCreatureStore.getState().xp).toBe(15);
-    });
-
-    it("stats cap at 100", () => {
+    it("caps stats at 100", () => {
       useCreatureStore.setState({ stats: { hunger: 90, hydration: 75, happiness: 75, energy: 75 } });
-      useCreatureStore.getState().feed();
+      useCreatureStore.getState().focusCare("hunger", 25);
       expect(useCreatureStore.getState().stats.hunger).toBe(100);
+    });
+
+    it("updates mood after stat change", () => {
+      useCreatureStore.setState({ stats: { hunger: 80, hydration: 80, happiness: 80, energy: 80 } });
+      useCreatureStore.getState().focusCare("energy", 10);
+      expect(useCreatureStore.getState().mood).toBe("happy");
+    });
+
+    it("ignores invalid stat keys", () => {
+      const before = { ...useCreatureStore.getState().stats };
+      useCreatureStore.getState().focusCare("invalid", 50);
+      expect(useCreatureStore.getState().stats).toEqual(before);
     });
   });
 
@@ -76,6 +64,16 @@ describe("creatureStore", () => {
       expect(stats.hydration).toBe(10);
       expect(stats.happiness).toBe(10);
       expect(stats.energy).toBe(10);
+    });
+
+    it("decay halves during focus", () => {
+      useCreatureStore.getState().setFocusing(true);
+      useCreatureStore.getState().decayStats();
+      const { stats } = useCreatureStore.getState();
+      expect(stats.hunger).toBe(74.5); // 75 - 1*0.5
+      expect(stats.hydration).toBe(74.25); // 75 - 1.5*0.5
+      expect(stats.happiness).toBe(74.75); // 75 - 0.5*0.5
+      expect(stats.energy).toBe(74.6); // 75 - 0.8*0.5
     });
 
     it("applyOfflineDecay applies multiple ticks", () => {
@@ -100,7 +98,7 @@ describe("creatureStore", () => {
   describe("mood derivation", () => {
     it("happy when avg >= 75", () => {
       useCreatureStore.setState({ stats: { hunger: 80, hydration: 80, happiness: 80, energy: 80 } });
-      useCreatureStore.getState().feed(); // triggers mood recalc
+      useCreatureStore.getState().focusCare("hunger", 5); // triggers mood recalc
       expect(useCreatureStore.getState().mood).toBe("happy");
     });
 
@@ -144,15 +142,14 @@ describe("creatureStore", () => {
   describe("leveling", () => {
     it("levels up when xp reaches threshold (level * 50)", () => {
       useCreatureStore.setState({ xp: 45, level: 1 });
-      useCreatureStore.getState().feed(); // +10 xp → 55, threshold is 50
+      useCreatureStore.getState().addXp(10); // +10 xp → 55, threshold is 50
       expect(useCreatureStore.getState().level).toBe(2);
       expect(useCreatureStore.getState().xp).toBe(5);
     });
 
     it("can multi-level up on large xp gains", () => {
       useCreatureStore.setState({ xp: 40, level: 1 });
-      // 40 + 15 = 55. Level 1 threshold = 50 → level 2, xp 5
-      useCreatureStore.getState().sunlight();
+      useCreatureStore.getState().addXp(15);
       expect(useCreatureStore.getState().level).toBe(2);
       expect(useCreatureStore.getState().xp).toBe(5);
     });
@@ -162,37 +159,36 @@ describe("creatureStore", () => {
       expect(useCreatureStore.getState().growthStage).toBe("sprout");
 
       useCreatureStore.setState({ xp: 0, level: 5 });
-      // Need to trigger a recalc via care action
-      useCreatureStore.getState().pet();
+      useCreatureStore.getState().addXp(1);
       expect(useCreatureStore.getState().growthStage).toBe("young");
 
       useCreatureStore.setState({ xp: 0, level: 10 });
-      useCreatureStore.getState().pet();
+      useCreatureStore.getState().addXp(1);
       expect(useCreatureStore.getState().growthStage).toBe("mature");
 
       useCreatureStore.setState({ xp: 0, level: 20 });
-      useCreatureStore.getState().pet();
+      useCreatureStore.getState().addXp(1);
       expect(useCreatureStore.getState().growthStage).toBe("elder");
     });
   });
 
   describe("xp gain tracking", () => {
-    it("sets lastXpGain on care action", () => {
-      useCreatureStore.getState().feed();
+    it("sets lastXpGain on addXp", () => {
+      useCreatureStore.getState().addXp(30);
       const state = useCreatureStore.getState();
       expect(state.lastXpGain).not.toBeNull();
-      expect(state.lastXpGain!.amount).toBe(10);
+      expect(state.lastXpGain!.amount).toBe(30);
     });
 
     it("sets lastLevelUp on level up", () => {
       useCreatureStore.setState({ xp: 45, level: 1 });
-      useCreatureStore.getState().feed(); // +10 → 55, threshold 50 → level up
+      useCreatureStore.getState().addXp(10); // → 55, threshold 50 → level up
       expect(useCreatureStore.getState().lastLevelUp).not.toBeNull();
     });
 
     it("does not set lastLevelUp when no level up", () => {
       useCreatureStore.setState({ xp: 0, level: 1 });
-      useCreatureStore.getState().feed(); // +10, threshold 50 → no level up
+      useCreatureStore.getState().addXp(10); // threshold 50 → no level up
       expect(useCreatureStore.getState().lastLevelUp).toBeNull();
     });
   });
@@ -211,7 +207,6 @@ describe("creatureStore", () => {
     });
 
     it("increments on consecutive days", () => {
-      // Simulate yesterday
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
@@ -248,7 +243,6 @@ describe("creatureStore", () => {
     });
 
     it("refreshShield no-ops on same week", () => {
-      // Get current week
       const d = new Date();
       const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
       const dayNum = tmp.getUTCDay() || 7;
@@ -262,6 +256,15 @@ describe("creatureStore", () => {
       });
       useCreatureStore.getState().refreshShield();
       expect(useCreatureStore.getState().streak.shieldAvailable).toBe(false);
+    });
+  });
+
+  describe("setFocusing", () => {
+    it("sets isFocusing flag", () => {
+      useCreatureStore.getState().setFocusing(true);
+      expect(useCreatureStore.getState().isFocusing).toBe(true);
+      useCreatureStore.getState().setFocusing(false);
+      expect(useCreatureStore.getState().isFocusing).toBe(false);
     });
   });
 

@@ -1,5 +1,3 @@
-import type { CareAction } from "../../../types";
-
 export type PixelColor = string | null;
 
 /** A particle's pixel pattern — small grid of colors */
@@ -34,9 +32,6 @@ const heartPattern: ParticlePattern = [
   [null, heartColor, null],
 ];
 
-// Sunray: single yellow pixel, descends
-const sunrayPattern: ParticlePattern = [["oklch(0.85 0.14 90)"]];
-
 // Spore: single dim green pixel, slow upward drift
 const sporePattern: ParticlePattern = [["oklch(0.55 0.08 145)"]];
 
@@ -56,10 +51,21 @@ const levelupPattern: ParticlePattern = [
   [null, levelupColor, null],
 ];
 
-export type ParticleType = CareAction | "zzz" | "spore" | "levelup" | "discovery" | "petal" | "firefly" | "leaf" | "snowflake";
+export type ParticleType =
+  | "sparkle"
+  | "water"
+  | "heart"
+  | "zzz"
+  | "spore"
+  | "levelup"
+  | "discovery"
+  | "petal"
+  | "firefly"
+  | "leaf"
+  | "snowflake";
 
 export const PARTICLE_CONFIGS: Record<ParticleType, ParticleConfig> = {
-  feed: {
+  sparkle: {
     pattern: sparklePattern,
     count: 4,
     ttl: 8,
@@ -77,7 +83,7 @@ export const PARTICLE_CONFIGS: Record<ParticleType, ParticleConfig> = {
     spread: 6,
     startRow: 1,
   },
-  pet: {
+  heart: {
     pattern: heartPattern,
     count: 3,
     ttl: 8,
@@ -85,15 +91,6 @@ export const PARTICLE_CONFIGS: Record<ParticleType, ParticleConfig> = {
     dy: -1,
     spread: 3,
     startRow: 3,
-  },
-  sunlight: {
-    pattern: sunrayPattern,
-    count: 4,
-    ttl: 8,
-    dx: 0,
-    dy: 1,
-    spread: 8,
-    startRow: 0,
   },
   zzz: {
     pattern: zzzPattern,

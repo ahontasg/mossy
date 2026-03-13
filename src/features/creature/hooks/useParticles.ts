@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PARTICLE_CONFIGS, type ParticleConfig, type ParticleType } from "../data/particles";
 import { useCreatureStore, isDormant } from "../../../stores/creatureStore";
+import { useFocusStore } from "../../../stores/focusStore";
 import type { Season } from "../../../types";
 
 export interface Particle {
@@ -73,17 +74,40 @@ export function useParticles(season?: Season): { particles: Particle[]; spawn: (
     };
   }, []);
 
-  // Subscribe to care actions
+  // Subscribe to focus session completions for sparkle particles
   useEffect(() => {
-    const unsub = useCreatureStore.subscribe(
-      (s) => s.lastCareAction,
-      (action) => {
-        if (action) {
-          spawn(action.type);
+    const unsub = useFocusStore.subscribe(
+      (s) => s.completedSessionsToday,
+      (sessions, prevSessions) => {
+        if (sessions > prevSessions) {
+          spawn("sparkle");
         }
       },
     );
     return unsub;
+  }, [spawn]);
+
+  // Ambient sparkles during active focus sessions
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const unsub = useFocusStore.subscribe(
+      (s) => s.status,
+      (status) => {
+        if (status === "focus" && !interval) {
+          interval = setInterval(() => spawn("sparkle"), 4000);
+        } else if (status !== "focus" && interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      },
+      { fireImmediately: true },
+    );
+
+    return () => {
+      unsub();
+      if (interval) clearInterval(interval);
+    };
   }, [spawn]);
 
   // Continuous spore emission when dormant (all stats at floor)

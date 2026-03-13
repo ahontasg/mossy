@@ -11,8 +11,8 @@ describe("MossCreature", () => {
       level: 1,
       growthStage: "sprout",
       mood: "happy",
-      lastCareAction: null,
       lastSave: Date.now(),
+      isFocusing: false,
     });
   });
 

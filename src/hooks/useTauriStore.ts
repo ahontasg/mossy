@@ -82,16 +82,6 @@ export async function initPersistence() {
     { equalityFn: (a, b) => a === b },
   );
 
-  // Record care day on care actions
-  useCreatureStore.subscribe(
-    (s) => s.lastCareAction,
-    (action) => {
-      if (action) {
-        useCreatureStore.getState().recordCareDay();
-      }
-    },
-  );
-
   // Start decay timer
   decayInterval = setInterval(() => {
     useCreatureStore.getState().decayStats();

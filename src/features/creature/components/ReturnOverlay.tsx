@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCreatureStore } from "../../../stores/creatureStore";
+import { useFocusStore } from "../../../stores/focusStore";
 import type { CreatureStats } from "../../../types";
 
 const STAT_LABELS: Record<keyof CreatureStats, string> = {
@@ -34,13 +35,13 @@ export function ReturnOverlay() {
     return () => clearTimeout(timer);
   }, [returnMoment, dismiss]);
 
-  // Dismiss on first care action
+  // Dismiss on first focus session start or any interaction
   useEffect(() => {
     if (!returnMoment) return;
-    return useCreatureStore.subscribe(
-      (s) => s.lastCareAction,
-      (action) => {
-        if (action) dismiss();
+    return useFocusStore.subscribe(
+      (s) => s.status,
+      (status) => {
+        if (status !== "idle") dismiss();
       },
     );
   }, [returnMoment, dismiss]);

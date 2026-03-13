@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import type {
-  CareAction,
   CreatureStats,
   CreatureState,
   GrowthStage,
@@ -69,17 +68,14 @@ interface CreatureStore {
   level: number;
   growthStage: GrowthStage;
   mood: Mood;
-  lastCareAction: { type: CareAction; timestamp: number } | null;
   lastSave: number;
   lastLevelUp: number | null;
   lastXpGain: { amount: number; timestamp: number } | null;
   streak: StreakData;
   returnMoment: ReturnMoment | null;
+  isFocusing: boolean;
 
-  feed: () => void;
-  water: () => void;
-  pet: () => void;
-  sunlight: () => void;
+  focusCare: (stat: string, amount: number) => void;
   addXp: (amount: number) => void;
   decayStats: () => void;
   applyOfflineDecay: (ticks: number) => void;
@@ -88,6 +84,7 @@ interface CreatureStore {
   refreshShield: () => void;
   setReturnMoment: (moment: ReturnMoment) => void;
   dismissReturnMoment: () => void;
+  setFocusing: (focusing: boolean) => void;
 }
 
 function addXpAndLevel(
@@ -107,34 +104,12 @@ function addXpAndLevel(
   return { xp, level, growthStage: deriveGrowthStage(level), didLevelUp: level > startLevel };
 }
 
-function applyCareAction(
-  s: Pick<CreatureStore, "stats" | "xp" | "level">,
-  statKey: keyof CreatureStats,
-  boost: number,
-  xpGain: number,
-  actionType: CareAction,
-) {
-  const stats = { ...s.stats, [statKey]: clampStat(s.stats[statKey] + boost) };
-  const { xp, level, growthStage, didLevelUp } = addXpAndLevel(s.xp, s.level, xpGain);
-  const now = Date.now();
+function applyDecay(stats: CreatureStats, ticks: number, decayMultiplier = 1) {
   return {
-    stats,
-    xp,
-    level,
-    growthStage,
-    mood: deriveMood(stats),
-    lastCareAction: { type: actionType, timestamp: now },
-    lastXpGain: { amount: xpGain, timestamp: now },
-    ...(didLevelUp ? { lastLevelUp: now } : {}),
-  };
-}
-
-function applyDecay(stats: CreatureStats, ticks: number) {
-  return {
-    hunger: clampStat(stats.hunger - DECAY_RATES.hunger * ticks, STAT_FLOOR),
-    hydration: clampStat(stats.hydration - DECAY_RATES.hydration * ticks, STAT_FLOOR),
-    happiness: clampStat(stats.happiness - DECAY_RATES.happiness * ticks, STAT_FLOOR),
-    energy: clampStat(stats.energy - DECAY_RATES.energy * ticks, STAT_FLOOR),
+    hunger: clampStat(stats.hunger - DECAY_RATES.hunger * ticks * decayMultiplier, STAT_FLOOR),
+    hydration: clampStat(stats.hydration - DECAY_RATES.hydration * ticks * decayMultiplier, STAT_FLOOR),
+    happiness: clampStat(stats.happiness - DECAY_RATES.happiness * ticks * decayMultiplier, STAT_FLOOR),
+    energy: clampStat(stats.energy - DECAY_RATES.energy * ticks * decayMultiplier, STAT_FLOOR),
   };
 }
 
@@ -171,17 +146,20 @@ export const useCreatureStore = create<CreatureStore>()(
     level: 1,
     growthStage: "sprout" as GrowthStage,
     mood: "happy" as Mood,
-    lastCareAction: null,
     lastSave: Date.now(),
     lastLevelUp: null,
     lastXpGain: null,
     streak: { ...DEFAULT_STREAK },
     returnMoment: null,
+    isFocusing: false,
 
-    feed: () => set((s) => applyCareAction(s, "hunger", 25, 10, "feed")),
-    water: () => set((s) => applyCareAction(s, "hydration", 30, 10, "water")),
-    pet: () => set((s) => applyCareAction(s, "happiness", 20, 5, "pet")),
-    sunlight: () => set((s) => applyCareAction(s, "energy", 20, 15, "sunlight")),
+    focusCare: (stat: string, amount: number) => {
+      set((s) => {
+        if (!(stat in s.stats)) return {};
+        const stats = { ...s.stats, [stat]: clampStat(s.stats[stat as keyof CreatureStats] + amount) };
+        return { stats, mood: deriveMood(stats) };
+      });
+    },
 
     addXp: (amount: number) => {
       set((s) => {
@@ -199,7 +177,8 @@ export const useCreatureStore = create<CreatureStore>()(
 
     decayStats: () => {
       set((s) => {
-        const stats = applyDecay(s.stats, 1);
+        const multiplier = s.isFocusing ? 0.5 : 1;
+        const stats = applyDecay(s.stats, 1, multiplier);
         return { stats, mood: deriveMood(stats) };
       });
     },
@@ -240,6 +219,10 @@ export const useCreatureStore = create<CreatureStore>()(
 
     dismissReturnMoment: () => {
       set({ returnMoment: null });
+    },
+
+    setFocusing: (focusing: boolean) => {
+      set({ isFocusing: focusing });
     },
   })),
 );
