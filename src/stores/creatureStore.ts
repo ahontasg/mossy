@@ -6,7 +6,10 @@ import type {
   CreatureState,
   GrowthStage,
   Mood,
+  StreakData,
+  ReturnMoment,
 } from "../types";
+import { getLocalDate, getISOWeek, isToday, isYesterday } from "../lib/time";
 
 export const STAT_FLOOR = 10;
 
@@ -53,6 +56,13 @@ function clampStat(value: number, min = 0, max = 100): number {
   return Math.min(max, Math.max(min, value));
 }
 
+export const DEFAULT_STREAK: StreakData = {
+  currentStreak: 0,
+  lastCareDate: null,
+  shieldAvailable: true,
+  shieldLastGrantedWeek: null,
+};
+
 interface CreatureStore {
   stats: CreatureStats;
   xp: number;
@@ -61,6 +71,10 @@ interface CreatureStore {
   mood: Mood;
   lastCareAction: { type: CareAction; timestamp: number } | null;
   lastSave: number;
+  lastLevelUp: number | null;
+  lastXpGain: { amount: number; timestamp: number } | null;
+  streak: StreakData;
+  returnMoment: ReturnMoment | null;
 
   feed: () => void;
   water: () => void;
@@ -70,6 +84,10 @@ interface CreatureStore {
   decayStats: () => void;
   applyOfflineDecay: (ticks: number) => void;
   hydrate: (data: CreatureState) => void;
+  recordCareDay: () => void;
+  refreshShield: () => void;
+  setReturnMoment: (moment: ReturnMoment) => void;
+  dismissReturnMoment: () => void;
 }
 
 function addXpAndLevel(
@@ -80,12 +98,13 @@ function addXpAndLevel(
   let xp = currentXp + xpGain;
   let level = currentLevel;
   let threshold = level * 50;
+  const startLevel = currentLevel;
   while (xp >= threshold) {
     xp -= threshold;
     level += 1;
     threshold = level * 50;
   }
-  return { xp, level, growthStage: deriveGrowthStage(level) };
+  return { xp, level, growthStage: deriveGrowthStage(level), didLevelUp: level > startLevel };
 }
 
 function applyCareAction(
@@ -96,14 +115,17 @@ function applyCareAction(
   actionType: CareAction,
 ) {
   const stats = { ...s.stats, [statKey]: clampStat(s.stats[statKey] + boost) };
-  const { xp, level, growthStage } = addXpAndLevel(s.xp, s.level, xpGain);
+  const { xp, level, growthStage, didLevelUp } = addXpAndLevel(s.xp, s.level, xpGain);
+  const now = Date.now();
   return {
     stats,
     xp,
     level,
     growthStage,
     mood: deriveMood(stats),
-    lastCareAction: { type: actionType, timestamp: Date.now() },
+    lastCareAction: { type: actionType, timestamp: now },
+    lastXpGain: { amount: xpGain, timestamp: now },
+    ...(didLevelUp ? { lastLevelUp: now } : {}),
   };
 }
 
@@ -116,6 +138,32 @@ function applyDecay(stats: CreatureStats, ticks: number) {
   };
 }
 
+function recordCareDay(streak: StreakData): StreakData {
+  const today = getLocalDate();
+  if (streak.lastCareDate && isToday(streak.lastCareDate)) {
+    return streak; // already recorded today
+  }
+  if (streak.lastCareDate && isYesterday(streak.lastCareDate)) {
+    return { ...streak, currentStreak: streak.currentStreak + 1, lastCareDate: today };
+  }
+  // Gap > 1 day: try shield or reset
+  if (streak.shieldAvailable && streak.currentStreak > 0) {
+    return {
+      ...streak,
+      currentStreak: streak.currentStreak + 1,
+      lastCareDate: today,
+      shieldAvailable: false,
+    };
+  }
+  return { ...streak, currentStreak: 1, lastCareDate: today };
+}
+
+function refreshShield(streak: StreakData): StreakData {
+  const currentWeek = getISOWeek();
+  if (streak.shieldLastGrantedWeek === currentWeek) return streak;
+  return { ...streak, shieldAvailable: true, shieldLastGrantedWeek: currentWeek };
+}
+
 export const useCreatureStore = create<CreatureStore>()(
   subscribeWithSelector((set) => ({
     stats: { ...DEFAULT_STATS },
@@ -125,6 +173,10 @@ export const useCreatureStore = create<CreatureStore>()(
     mood: "happy" as Mood,
     lastCareAction: null,
     lastSave: Date.now(),
+    lastLevelUp: null,
+    lastXpGain: null,
+    streak: { ...DEFAULT_STREAK },
+    returnMoment: null,
 
     feed: () => set((s) => applyCareAction(s, "hunger", 25, 10, "feed")),
     water: () => set((s) => applyCareAction(s, "hydration", 30, 10, "water")),
@@ -133,8 +185,15 @@ export const useCreatureStore = create<CreatureStore>()(
 
     addXp: (amount: number) => {
       set((s) => {
-        const { xp, level, growthStage } = addXpAndLevel(s.xp, s.level, amount);
-        return { xp, level, growthStage };
+        const { xp, level, growthStage, didLevelUp } = addXpAndLevel(s.xp, s.level, amount);
+        const now = Date.now();
+        return {
+          xp,
+          level,
+          growthStage,
+          lastXpGain: { amount, timestamp: now },
+          ...(didLevelUp ? { lastLevelUp: now } : {}),
+        };
       });
     },
 
@@ -165,6 +224,22 @@ export const useCreatureStore = create<CreatureStore>()(
         mood: deriveMood(stats),
         lastSave: data.lastSave,
       });
+    },
+
+    recordCareDay: () => {
+      set((s) => ({ streak: recordCareDay(s.streak) }));
+    },
+
+    refreshShield: () => {
+      set((s) => ({ streak: refreshShield(s.streak) }));
+    },
+
+    setReturnMoment: (moment: ReturnMoment) => {
+      set({ returnMoment: moment });
+    },
+
+    dismissReturnMoment: () => {
+      set({ returnMoment: null });
     },
   })),
 );

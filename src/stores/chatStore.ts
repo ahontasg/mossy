@@ -3,7 +3,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 import { invoke, Channel } from "../lib/tauri";
 import { buildSystemPrompt } from "../features/chat/lib/systemPrompt";
 import { useCreatureStore } from "./creatureStore";
-import type { ChatMessage, LlmStatus, ChatEvent, PullEvent } from "../types";
+import type { ChatMessage, LlmStatus, ChatEvent, PullEvent, Season } from "../types";
 
 const SLIDING_WINDOW = 6;
 
@@ -35,6 +35,7 @@ interface ChatStore {
   sendMessage: (text: string) => Promise<void>;
   checkLlmStatus: () => Promise<void>;
   downloadModel: () => Promise<void>;
+  clearHistory: () => void;
   reset: () => void;
 }
 
@@ -66,12 +67,22 @@ export const useChatStore = create<ChatStore>()(
       }));
 
       const { stats, mood, level } = useCreatureStore.getState();
-      const systemPrompt = buildSystemPrompt(stats, mood, level);
+      const season = document.documentElement.getAttribute("data-season") as Season | null;
+      const systemPrompt = buildSystemPrompt(stats, mood, level, season ?? undefined);
 
-      // Build sliding window of messages for context
-      const recentMessages = get()
+      // Build sliding window of messages for context, enforcing alternating roles
+      const allMessages = get()
         .messages.slice(-SLIDING_WINDOW)
         .map((m) => ({ role: m.role, content: m.content }));
+
+      // Walk backward and keep the most recent valid alternating sequence
+      const recentMessages: typeof allMessages = [];
+      for (let i = allMessages.length - 1; i >= 0; i--) {
+        const msg = allMessages[i];
+        if (recentMessages.length === 0 || recentMessages[0].role !== msg.role) {
+          recentMessages.unshift(msg);
+        }
+      }
 
       const channel = new Channel<ChatEvent>();
       let accumulated = "";
@@ -188,6 +199,11 @@ export const useChatStore = create<ChatStore>()(
         console.error("download_model failed:", e);
         set({ llmStatus: "no_model", pullProgress: 0 });
       }
+    },
+
+    clearHistory: () => {
+      messageIdCounter = 0;
+      set({ messages: [], streamingText: "" });
     },
 
     reset: () => {

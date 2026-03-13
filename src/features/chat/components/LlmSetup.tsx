@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useChatStore } from "../../../stores/chatStore";
 
 export function LlmSetup() {
@@ -5,10 +7,37 @@ export function LlmSetup() {
   const pullProgress = useChatStore((s) => s.pullProgress);
   const downloadModel = useChatStore((s) => s.downloadModel);
 
-  if (status === "ready" || status === "unknown") return null;
+  const prevStatusRef = useRef(status);
+  const [showReady, setShowReady] = useState(false);
+
+  useEffect(() => {
+    if (prevStatusRef.current !== "ready" && status === "ready") {
+      setShowReady(true);
+      const timer = setTimeout(() => setShowReady(false), 2000);
+      return () => clearTimeout(timer);
+    }
+    prevStatusRef.current = status;
+  }, [status]);
+
+  if (status === "ready" && !showReady) return null;
+  if (status === "unknown") return null;
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-4 py-6 text-center">
+      <AnimatePresence>
+        {status === "ready" && showReady && (
+          <motion.div
+            className="text-moss-300 text-xs font-medium"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            Mossy is ready to chat!
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {status === "checking" && (
         <div className="text-white/60 text-xs animate-pulse">
           *checking for brain...*

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useCreatureStore, DEFAULT_STATS } from "./creatureStore";
+import { useCreatureStore, DEFAULT_STATS, DEFAULT_STREAK } from "./creatureStore";
 
 function resetStore() {
   useCreatureStore.setState({
@@ -10,6 +10,10 @@ function resetStore() {
     mood: "happy",
     lastCareAction: null,
     lastSave: Date.now(),
+    lastLevelUp: null,
+    lastXpGain: null,
+    streak: { ...DEFAULT_STREAK },
+    returnMoment: null,
   });
 }
 
@@ -169,6 +173,110 @@ describe("creatureStore", () => {
       useCreatureStore.setState({ xp: 0, level: 20 });
       useCreatureStore.getState().pet();
       expect(useCreatureStore.getState().growthStage).toBe("elder");
+    });
+  });
+
+  describe("xp gain tracking", () => {
+    it("sets lastXpGain on care action", () => {
+      useCreatureStore.getState().feed();
+      const state = useCreatureStore.getState();
+      expect(state.lastXpGain).not.toBeNull();
+      expect(state.lastXpGain!.amount).toBe(10);
+    });
+
+    it("sets lastLevelUp on level up", () => {
+      useCreatureStore.setState({ xp: 45, level: 1 });
+      useCreatureStore.getState().feed(); // +10 → 55, threshold 50 → level up
+      expect(useCreatureStore.getState().lastLevelUp).not.toBeNull();
+    });
+
+    it("does not set lastLevelUp when no level up", () => {
+      useCreatureStore.setState({ xp: 0, level: 1 });
+      useCreatureStore.getState().feed(); // +10, threshold 50 → no level up
+      expect(useCreatureStore.getState().lastLevelUp).toBeNull();
+    });
+  });
+
+  describe("streak", () => {
+    it("starts streak on first care day", () => {
+      useCreatureStore.getState().recordCareDay();
+      expect(useCreatureStore.getState().streak.currentStreak).toBe(1);
+      expect(useCreatureStore.getState().streak.lastCareDate).not.toBeNull();
+    });
+
+    it("no-ops if already recorded today", () => {
+      useCreatureStore.getState().recordCareDay();
+      useCreatureStore.getState().recordCareDay();
+      expect(useCreatureStore.getState().streak.currentStreak).toBe(1);
+    });
+
+    it("increments on consecutive days", () => {
+      // Simulate yesterday
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+      useCreatureStore.setState({
+        streak: { currentStreak: 3, lastCareDate: yStr, shieldAvailable: true, shieldLastGrantedWeek: null },
+      });
+      useCreatureStore.getState().recordCareDay();
+      expect(useCreatureStore.getState().streak.currentStreak).toBe(4);
+    });
+
+    it("resets on gap > 1 day without shield", () => {
+      useCreatureStore.setState({
+        streak: { currentStreak: 5, lastCareDate: "2020-01-01", shieldAvailable: false, shieldLastGrantedWeek: null },
+      });
+      useCreatureStore.getState().recordCareDay();
+      expect(useCreatureStore.getState().streak.currentStreak).toBe(1);
+    });
+
+    it("uses shield on gap > 1 day when available", () => {
+      useCreatureStore.setState({
+        streak: { currentStreak: 5, lastCareDate: "2020-01-01", shieldAvailable: true, shieldLastGrantedWeek: null },
+      });
+      useCreatureStore.getState().recordCareDay();
+      expect(useCreatureStore.getState().streak.currentStreak).toBe(6);
+      expect(useCreatureStore.getState().streak.shieldAvailable).toBe(false);
+    });
+
+    it("refreshShield grants shield on new week", () => {
+      useCreatureStore.setState({
+        streak: { currentStreak: 3, lastCareDate: "2026-03-10", shieldAvailable: false, shieldLastGrantedWeek: "2020-W01" },
+      });
+      useCreatureStore.getState().refreshShield();
+      expect(useCreatureStore.getState().streak.shieldAvailable).toBe(true);
+    });
+
+    it("refreshShield no-ops on same week", () => {
+      // Get current week
+      const d = new Date();
+      const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = tmp.getUTCDay() || 7;
+      tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil(((tmp.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+      const currentWeek = `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+
+      useCreatureStore.setState({
+        streak: { currentStreak: 3, lastCareDate: "2026-03-10", shieldAvailable: false, shieldLastGrantedWeek: currentWeek },
+      });
+      useCreatureStore.getState().refreshShield();
+      expect(useCreatureStore.getState().streak.shieldAvailable).toBe(false);
+    });
+  });
+
+  describe("return moment", () => {
+    it("sets and dismisses return moment", () => {
+      const moment = {
+        durationHours: 5.2,
+        statsBefore: { hunger: 75, hydration: 75, happiness: 75, energy: 75 },
+        statsAfter: { hunger: 50, hydration: 40, happiness: 60, energy: 45 },
+      };
+      useCreatureStore.getState().setReturnMoment(moment);
+      expect(useCreatureStore.getState().returnMoment).toEqual(moment);
+
+      useCreatureStore.getState().dismissReturnMoment();
+      expect(useCreatureStore.getState().returnMoment).toBeNull();
     });
   });
 

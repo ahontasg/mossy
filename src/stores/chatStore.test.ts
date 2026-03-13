@@ -143,6 +143,42 @@ describe("chatStore", () => {
     });
   });
 
+  describe("role validation", () => {
+    it("filters consecutive same-role messages before LLM call", async () => {
+      let capturedMessages: { role: string; content: string }[] = [];
+      mockInvoke.mockImplementation(
+        async (cmd: string, args?: Record<string, unknown>) => {
+          if (cmd === "chat_with_mossy") {
+            capturedMessages = (args as Record<string, unknown>)
+              ?.messages as typeof capturedMessages;
+            const channel = (args as Record<string, unknown>)
+              ?.onEvent as { onmessage: (e: unknown) => void };
+            channel.onmessage({ event: "delta", data: { text: "ok" } });
+            channel.onmessage({ event: "done" });
+            return undefined as never;
+          }
+          return true as never;
+        },
+      );
+
+      // Manually inject consecutive same-role messages
+      useChatStore.setState({
+        messages: [
+          { id: "1", role: "user", content: "hi", timestamp: 1 },
+          { id: "2", role: "user", content: "hello", timestamp: 2 },
+          { id: "3", role: "assistant", content: "hey", timestamp: 3 },
+        ],
+      });
+
+      await useChatStore.getState().sendMessage("test");
+
+      // Should not have consecutive user messages
+      for (let i = 1; i < capturedMessages.length; i++) {
+        expect(capturedMessages[i].role).not.toBe(capturedMessages[i - 1].role);
+      }
+    });
+  });
+
   describe("reset", () => {
     it("clears all state", () => {
       useChatStore.setState({
