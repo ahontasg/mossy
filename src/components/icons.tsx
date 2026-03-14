@@ -118,3 +118,14 @@ export function IconFlame({ size = 16, className }: IconProps) {
     </svg>
   );
 }
+
+export function IconGames({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="2" y="4" width="5" height="5" rx="1" />
+      <rect x="9" y="4" width="5" height="5" rx="1" />
+      <rect x="2" y="11" width="5" height="3" rx="1" />
+      <rect x="9" y="11" width="5" height="3" rx="1" />
+    </svg>
+  );
+}

@@ -13,6 +13,7 @@ import { JournalPanel, DiscoveryPopup } from "./features/journal";
 import { QuestPanel, QuestCompletionPopup } from "./features/quests";
 import { AchievementToast, AchievementGallery } from "./features/achievements";
 import { AuthPanel, LeaderboardPanel } from "./features/social";
+import { GamePanel, NewRecordToast } from "./features/games";
 import { NavTabs } from "./components/NavTabs";
 import { IconBack } from "./components/icons";
 import { useUiStore, type PanelId } from "./stores/uiStore";
@@ -27,6 +28,7 @@ import { initAuthPersistence, cleanupAuthPersistence } from "./hooks/useAuthStor
 import { initSyncPersistence, cleanupSyncPersistence } from "./hooks/useSyncStore";
 import { initFocusPersistence, cleanupFocusPersistence } from "./hooks/useFocusStore";
 import { initAssistantPersistence, cleanupAssistantPersistence } from "./hooks/useAssistantStore";
+import { initGamePersistence, cleanupGamePersistence } from "./hooks/useGameStore";
 import { useAssistantStore } from "./stores/assistantStore";
 import { buildDailyBrief } from "./features/chat/lib/dailyBrief";
 import { useFocusStore } from "./stores/focusStore";
@@ -66,6 +68,7 @@ function App() {
         initAuthPersistence(),
         initFocusPersistence(),
         initAssistantPersistence(),
+        initGamePersistence(),
       ]);
       // Wave 2: depend on creature/journal/focus stores being ready
       await Promise.all([
@@ -113,6 +116,7 @@ function App() {
       cleanupSyncPersistence();
       cleanupFocusPersistence();
       cleanupAssistantPersistence();
+      cleanupGamePersistence();
       unlisten.then((fn) => fn());
       unlistenSettings.then((fn) => fn());
     };
@@ -245,6 +249,9 @@ function App() {
             {activePanel === "leaderboard" && (
               <LeaderboardPanel onClose={handleGoHome} />
             )}
+            {activePanel === "games" && (
+              <GamePanel onClose={handleGoHome} />
+            )}
             {activePanel === "settings" && (
               <SettingsPanel onClose={handleGoHome} />
             )}
@@ -258,6 +265,7 @@ function App() {
       <QuestCompletionPopup />
       <AchievementToast />
       <FocusCompletionPopup />
+      <NewRecordToast />
       <ReminderToast />
     </main>
   );

@@ -11,6 +11,7 @@ export type PanelId =
   | "notes"
   | "social"
   | "leaderboard"
+  | "games"
   | "settings";
 
 interface UiState {

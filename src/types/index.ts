@@ -244,3 +244,14 @@ export interface FeedItem {
   metadata: Record<string, unknown>;
   serverTimestamp: string;
 }
+
+// ── Game types ──
+
+export type GameId = "memory" | "mossy_says";
+
+export interface GameResult {
+  gameId: GameId;
+  score: number;
+  isNewRecord: boolean;
+  timestamp: number;
+}

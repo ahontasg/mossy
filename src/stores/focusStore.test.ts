@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useFocusStore, type PersistedFocusData } from "./focusStore";
+import { getLocalDate } from "../lib/time";
 
 // Mock creatureStore
 vi.mock("./creatureStore", () => {
@@ -60,7 +61,7 @@ describe("focusStore.hydrate", () => {
   it("resets daily stats when lastFocusDate is from a previous day", () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    const yesterdayStr = getLocalDate(yesterday);
 
     const data: PersistedFocusData = {
       status: "idle",
@@ -89,7 +90,7 @@ describe("focusStore.hydrate", () => {
   });
 
   it("keeps daily stats when lastFocusDate is today", () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDate();
 
     const data: PersistedFocusData = {
       status: "idle",

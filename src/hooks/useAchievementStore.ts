@@ -4,6 +4,7 @@ import { useCreatureStore } from "../stores/creatureStore";
 import { useFocusStore } from "../stores/focusStore";
 import { useChatStore } from "../stores/chatStore";
 import { useJournalStore } from "../stores/journalStore";
+import { useGameStore } from "../stores/gameStore";
 import { ACHIEVEMENTS, type AchievementContext } from "../features/achievements/data/achievements";
 import { getTimeOfDay } from "../lib/time";
 import type { TimeOfDay } from "../types";
@@ -126,6 +127,19 @@ export async function initAchievementPersistence() {
     useJournalStore.subscribe(
       (s) => s.discovered.length,
       () => checkAchievements(),
+    ),
+  );
+
+  // Subscribe to game plays
+  unsubs.push(
+    useGameStore.subscribe(
+      (s) => s.gamesPlayedToday,
+      (gamesPlayed, prevGamesPlayed) => {
+        if (gamesPlayed > prevGamesPlayed) {
+          useAchievementStore.getState().recordCareDay("game");
+          checkAchievements();
+        }
+      },
     ),
   );
 

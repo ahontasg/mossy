@@ -16,7 +16,10 @@ import {
   trackStreakChange,
   trackSpecimenDiscovery,
   trackReminderSet,
+  trackGamePlay,
+  trackGameHighScore,
 } from "../features/quests/lib/questTracker";
+import { useGameStore } from "../stores/gameStore";
 import { getLocalDate, getTimeOfDay } from "../lib/time";
 import type { ActiveQuest } from "../types";
 
@@ -194,6 +197,38 @@ export async function initQuestPersistence() {
       (count) => {
         const { quests } = useQuestStore.getState();
         const next = trackReminderSet(quests, QUEST_TEMPLATE_MAP, count);
+        if (next !== quests) {
+          checkCompletions(quests, next);
+          useQuestStore.getState().updateQuests(next);
+        }
+      },
+    ),
+  );
+
+  // Subscribe to game plays
+  unsubs.push(
+    useGameStore.subscribe(
+      (s) => s.gamesPlayedToday,
+      (gamesPlayed, prevGamesPlayed) => {
+        if (gamesPlayed <= prevGamesPlayed) return; // guard against day reset
+        const { quests } = useQuestStore.getState();
+        const next = trackGamePlay(quests, QUEST_TEMPLATE_MAP, gamesPlayed);
+        if (next !== quests) {
+          checkCompletions(quests, next);
+          useQuestStore.getState().updateQuests(next);
+        }
+      },
+    ),
+  );
+
+  // Subscribe to game high scores
+  unsubs.push(
+    useGameStore.subscribe(
+      (s) => s.lastGameResult,
+      (result) => {
+        if (!result) return;
+        const { quests } = useQuestStore.getState();
+        const next = trackGameHighScore(quests, QUEST_TEMPLATE_MAP, result.gameId, result.isNewRecord);
         if (next !== quests) {
           checkCompletions(quests, next);
           useQuestStore.getState().updateQuests(next);

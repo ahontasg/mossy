@@ -13,6 +13,7 @@ import {
   IconNotes,
   IconSocial,
   IconLeaderboard,
+  IconGames,
   IconSettings,
 } from "./icons";
 
@@ -44,6 +45,7 @@ export function NavTabs() {
   const showSocial = isSupabaseConfigured();
 
   const moreItems = ([
+    { id: "games" as PanelId, label: "Games", icon: IconGames },
     { id: "achievements" as PanelId, label: "Badges", icon: IconAchievements },
     { id: "notes" as PanelId, label: "Notes", icon: IconNotes },
     { id: "social" as PanelId, label: "Social", icon: IconSocial, show: showSocial },

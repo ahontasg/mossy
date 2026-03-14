@@ -5,6 +5,7 @@ import { useCreatureStore } from "../stores/creatureStore";
 import { useFocusStore } from "../stores/focusStore";
 import { useChatStore } from "../stores/chatStore";
 import { useQuestStore } from "../stores/questStore";
+import { useGameStore } from "../stores/gameStore";
 import { isSupabaseConfigured } from "../lib/supabase";
 import type { QueuedCareEvent, CareEventType } from "../types";
 
@@ -100,6 +101,22 @@ export async function initSyncPersistence() {
       (level, prevLevel) => {
         if (level > prevLevel) {
           enqueueIfSignedIn("level_up", 0, { level });
+        }
+      },
+    ),
+  );
+
+  // Subscribe to game results
+  unsubs.push(
+    useGameStore.subscribe(
+      (s) => s.lastGameResult,
+      (result) => {
+        if (result) {
+          const xp = result.isNewRecord ? 25 : 15; // GAME_XP + optional bonus
+          enqueueIfSignedIn("game_score", xp, {
+            gameId: result.gameId,
+            score: result.score,
+          });
         }
       },
     ),
