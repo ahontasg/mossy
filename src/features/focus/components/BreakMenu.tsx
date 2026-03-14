@@ -9,12 +9,13 @@ export function BreakMenu({ onSkipBreak }: BreakMenuProps) {
 
   return (
     <div className="flex flex-col items-center gap-2 px-3">
-      <p className="text-[10px] text-white/70 text-center italic">
+      <p className="text-center italic" style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-xs)" }}>
         {suggestion}
       </p>
       <button
         onClick={onSkipBreak}
-        className="text-[9px] text-white/40 hover:text-white/70 transition-colors"
+        className="hover:opacity-70 transition-opacity"
+        style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-xs)" }}
       >
         Skip break
       </button>

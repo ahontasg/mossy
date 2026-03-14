@@ -16,7 +16,7 @@ export function MessageList() {
   return (
     <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin">
       {messages.length === 0 && !isStreaming && (
-        <div className="text-center text-white/40 text-xs mt-4">
+        <div className="text-center mt-4" style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-sm)" }}>
           *rustles gently* Say hi to Mossy!
         </div>
       )}
@@ -28,7 +28,14 @@ export function MessageList() {
       )}
       {isStreaming && !streamingText && (
         <div className="flex justify-start mb-1.5">
-          <div className="rounded-lg px-2.5 py-1.5 text-xs bg-moss-800/80 text-moss-300">
+          <div
+            className="rounded-lg px-2.5 py-1.5"
+            style={{
+              fontSize: "var(--text-sm)",
+              background: "oklch(0.93 0.04 145 / 0.5)",
+              color: "var(--color-text-secondary)",
+            }}
+          >
             <span className="animate-pulse">*thinking...*</span>
           </div>
         </div>

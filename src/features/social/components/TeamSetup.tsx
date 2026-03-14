@@ -41,20 +41,20 @@ export function TeamSetup() {
   if (createdCode) {
     return (
       <div className="flex flex-col gap-2">
-        <span className="text-white/70 text-[10px]">Team created!</span>
+        <span className="text-[10px]" style={{ color: "var(--color-text-primary)" }}>Team created!</span>
         <div
-          className="text-center py-2 rounded text-sm font-mono font-bold tracking-widest text-white/90"
-          style={{ background: "rgba(255, 255, 255, 0.08)" }}
+          className="text-center py-2 rounded text-sm font-mono font-bold tracking-widest"
+          style={{ background: "var(--color-surface-inset)", color: "var(--color-text-primary)" }}
         >
           {createdCode}
         </div>
-        <span className="text-white/40 text-[8px]">Share this code with your team</span>
+        <span className="text-[8px]" style={{ color: "var(--color-text-tertiary)" }}>Share this code with your team</span>
         <button
           onClick={async () => {
             await navigator.clipboard.writeText(createdCode);
           }}
-          className="text-[9px] text-white/50 hover:text-white/70 py-1 rounded transition-colors"
-          style={{ background: "rgba(255, 255, 255, 0.05)" }}
+          className="text-[9px] py-1 rounded transition-opacity hover:opacity-70"
+          style={{ color: "var(--color-text-tertiary)", background: "var(--color-surface-inset)" }}
         >
           Copy code
         </button>
@@ -65,7 +65,7 @@ export function TeamSetup() {
   if (mode === "choice") {
     return (
       <div className="flex flex-col gap-2">
-        <span className="text-white/60 text-[10px]">Join or create a team to compete</span>
+        <span className="text-[10px]" style={{ color: "var(--color-text-secondary)" }}>Join or create a team to compete</span>
         <button
           onClick={() => setMode("create")}
           className="text-[10px] font-medium py-1.5 rounded transition-colors"
@@ -76,7 +76,7 @@ export function TeamSetup() {
         <button
           onClick={() => setMode("join")}
           className="text-[10px] font-medium py-1.5 rounded transition-colors"
-          style={{ background: "rgba(255, 255, 255, 0.08)", color: "rgba(255, 255, 255, 0.6)" }}
+          style={{ background: "var(--color-surface-inset)", color: "var(--color-text-secondary)" }}
         >
           Join with code
         </button>
@@ -88,7 +88,8 @@ export function TeamSetup() {
     <div className="flex flex-col gap-2">
       <button
         onClick={() => setMode("choice")}
-        className="text-[8px] text-white/40 hover:text-white/60 self-start transition-colors"
+        className="text-[8px] self-start transition-opacity hover:opacity-70"
+        style={{ color: "var(--color-text-tertiary)" }}
       >
         {"\u2190"} Back
       </button>
@@ -100,8 +101,8 @@ export function TeamSetup() {
             placeholder="Team name"
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
-            className="rounded px-2 py-1 text-[10px] text-white/80 outline-none"
-            style={{ background: "rgba(255, 255, 255, 0.08)" }}
+            className="rounded px-2 py-1 text-[10px] outline-none"
+            style={{ background: "var(--color-surface-inset)", color: "var(--color-text-primary)" }}
           />
           <button
             onClick={handleCreate}
@@ -124,8 +125,8 @@ export function TeamSetup() {
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
             maxLength={6}
-            className="rounded px-2 py-1 text-[10px] text-white/80 font-mono tracking-widest text-center outline-none"
-            style={{ background: "rgba(255, 255, 255, 0.08)" }}
+            className="rounded px-2 py-1 text-[10px] font-mono tracking-widest text-center outline-none"
+            style={{ background: "var(--color-surface-inset)", color: "var(--color-text-primary)" }}
           />
           <button
             onClick={handleJoin}

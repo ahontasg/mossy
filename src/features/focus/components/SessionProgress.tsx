@@ -20,14 +20,14 @@ export function SessionProgress({ sessionIndex, completedToday }: SessionProgres
                 ? "#7cb342"
                 : isCurrent
                   ? "rgba(124, 179, 66, 0.5)"
-                  : "rgba(255,255,255,0.15)",
+                  : "var(--color-surface-inset)",
               transition: "background 0.3s",
             }}
           />
         );
       })}
       {completedToday > 0 && (
-        <span className="text-[8px] text-white/50 ml-1">
+        <span className="ml-1" style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>
           {completedToday} done
         </span>
       )}

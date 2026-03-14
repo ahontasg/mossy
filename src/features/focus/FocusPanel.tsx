@@ -108,8 +108,8 @@ export function FocusPanel() {
         {status === "idle" && (
           <button
             onClick={start}
-            className="rounded-lg px-4 py-1.5 text-xs font-bold text-white transition-transform hover:scale-105 active:scale-95"
-            style={{ background: "#7cb342" }}
+            className="rounded-lg px-4 py-1.5 font-bold transition-transform hover:scale-105 active:scale-95"
+            style={{ background: "var(--color-terracotta-500)", color: "white", fontSize: "var(--text-sm)" }}
           >
             Start Focus
           </button>
@@ -119,15 +119,15 @@ export function FocusPanel() {
           <>
             <button
               onClick={pause}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-white/80 transition-transform hover:scale-105"
-              style={{ background: "rgba(255,255,255,0.1)" }}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium transition-transform hover:scale-105"
+              style={{ background: "var(--color-surface-inset)", color: "var(--color-text-secondary)" }}
             >
               Pause
             </button>
             <button
               onClick={stop}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-white/50 transition-transform hover:scale-105"
-              style={{ background: "rgba(255,255,255,0.05)" }}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium transition-transform hover:scale-105"
+              style={{ background: "transparent", color: "var(--color-text-tertiary)" }}
             >
               Stop
             </button>
@@ -138,15 +138,15 @@ export function FocusPanel() {
           <>
             <button
               onClick={resume}
-              className="rounded-lg px-4 py-1.5 text-xs font-bold text-white transition-transform hover:scale-105 active:scale-95"
-              style={{ background: "#fbbf24" }}
+              className="rounded-lg px-4 py-1.5 text-xs font-bold transition-transform hover:scale-105 active:scale-95"
+              style={{ background: "#fbbf24", color: "var(--color-text-primary)" }}
             >
               Resume
             </button>
             <button
               onClick={stop}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-white/50 transition-transform hover:scale-105"
-              style={{ background: "rgba(255,255,255,0.05)" }}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium transition-transform hover:scale-105"
+              style={{ background: "transparent", color: "var(--color-text-tertiary)" }}
             >
               Stop
             </button>
@@ -158,7 +158,7 @@ export function FocusPanel() {
       {isBreak && <BreakMenu onSkipBreak={handleSkipBreak} />}
 
       {/* Today's stats */}
-      <div className="flex items-center gap-3 text-[9px] text-white/50">
+      <div className="flex items-center gap-3" style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>
         {todayFocusMinutes > 0 && (
           <span>{todayFocusMinutes}m focused today</span>
         )}

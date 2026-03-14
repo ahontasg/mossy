@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import { Toast } from "../../../components/Toast";
 import { useQuestStore } from "../../../stores/questStore";
 import { useSettingsStore } from "../../../stores/settingsStore";
 import { playLevelUpDing } from "../../../lib/audio";
@@ -40,25 +41,20 @@ export function QuestCompletionPopup() {
   return (
     <AnimatePresence>
       {popups.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute bottom-16 left-1/2 -translate-x-1/2 z-40 rounded-lg px-3 py-1.5 text-center pointer-events-none"
-          style={{
-            background: "rgba(0, 0, 0, 0.7)",
-            backdropFilter: "blur(4px)",
-            border: "1px solid rgba(124, 179, 66, 0.4)",
-          }}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="text-[9px] text-white/50">Quest Complete!</div>
-          <div className="text-[11px] font-bold text-white/90">{p.title}</div>
-          <div className="text-[9px] font-bold" style={{ color: "#d4af37" }}>
+        <Toast key={p.id} variant="success">
+          <div style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-xs)" }}>
+            Quest Complete!
+          </div>
+          <div
+            className="font-bold"
+            style={{ color: "var(--color-text-primary)", fontSize: "var(--text-sm)" }}
+          >
+            {p.title}
+          </div>
+          <div className="font-bold" style={{ color: "#d4af37", fontSize: "var(--text-xs)" }}>
             +{p.xp} XP
           </div>
-        </motion.div>
+        </Toast>
       ))}
     </AnimatePresence>
   );

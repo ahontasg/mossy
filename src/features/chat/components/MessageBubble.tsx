@@ -10,11 +10,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className={`flex ${isMossy ? "justify-start" : "justify-end"} mb-1.5`}>
       <div
-        className={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs leading-relaxed ${
-          isMossy
-            ? "bg-moss-800/80 text-moss-100"
-            : "bg-white/15 text-white/90"
-        }`}
+        className="max-w-[85%] rounded-lg px-2.5 py-1.5 leading-relaxed"
+        style={{
+          fontSize: "var(--text-sm)",
+          background: isMossy
+            ? "oklch(0.93 0.04 145 / 0.5)"
+            : "oklch(0.62 0.12 45 / 0.12)",
+          color: "var(--color-text-primary)",
+        }}
       >
         {message.content}
       </div>

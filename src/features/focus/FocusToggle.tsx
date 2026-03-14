@@ -38,9 +38,9 @@ export function FocusToggle({ onClick }: FocusToggleProps) {
   const isBreak = status === "short_break" || status === "long_break";
   const bgColor = isActive
     ? isBreak
-      ? "rgba(66, 165, 245, 0.3)"
-      : "rgba(124, 179, 66, 0.3)"
-    : "rgba(255, 255, 255, 0.08)";
+      ? "oklch(0.55 0.10 255 / 0.15)"
+      : "oklch(0.58 0.14 145 / 0.15)"
+    : "var(--color-surface-inset)";
 
   return (
     <button
@@ -54,7 +54,7 @@ export function FocusToggle({ onClick }: FocusToggleProps) {
           <span className="text-[10px] leading-none">
             {isBreak ? "\u2615" : "\u{1F3AF}"}
           </span>
-          <span className="text-[9px] font-mono font-bold text-white/90 leading-none">
+          <span className="text-[9px] font-mono font-bold leading-none" style={{ color: "var(--color-text-primary)" }}>
             {formatTimeDisplay(displayMs)}
           </span>
         </>

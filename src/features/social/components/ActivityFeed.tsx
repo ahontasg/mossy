@@ -20,7 +20,7 @@ export function ActivityFeed() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-4">
-        <span className="text-white/40 text-[9px]">Loading...</span>
+        <span style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-xs)" }}>Loading...</span>
       </div>
     );
   }
@@ -28,7 +28,7 @@ export function ActivityFeed() {
   if (items.length === 0) {
     return (
       <div className="flex items-center justify-center py-4">
-        <span className="text-white/40 text-[9px]">No recent activity</span>
+        <span style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-xs)" }}>No recent activity</span>
       </div>
     );
   }
@@ -42,10 +42,10 @@ export function ActivityFeed() {
           <div
             key={item.id}
             className="flex items-start gap-1.5 rounded px-2 py-1"
-            style={{ background: "rgba(255, 255, 255, 0.03)" }}
+            style={{ background: "var(--color-surface-raised)" }}
           >
-            <span className="text-[9px] text-white/60 flex-1 leading-tight">{text}</span>
-            <span className="text-[7px] text-white/25 flex-shrink-0 pt-0.5">{timeAgo}</span>
+            <span className="flex-1 leading-tight" style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>{text}</span>
+            <span className="flex-shrink-0 pt-0.5" style={{ fontSize: "8px", color: "var(--color-text-tertiary)" }}>{timeAgo}</span>
           </div>
         );
       })}

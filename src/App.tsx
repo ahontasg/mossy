@@ -1,10 +1,11 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { AnimatePresence } from "motion/react";
 import { MossCreature } from "./features/creature";
-import { CareButtons } from "./features/creature/components/CareButtons";
+import { StatusBar } from "./features/creature/components/StatusBar";
 import { ReturnOverlay } from "./features/creature/components/ReturnOverlay";
 import { FocusPanel, FocusCompletionPopup } from "./features/focus";
-import { ChatPanel, ChatToggle } from "./features/chat";
+import { ChatPanel } from "./features/chat";
 import { ReminderToast } from "./features/chat/components/ReminderToast";
 import { NotesPanel } from "./features/chat/components/NotesPanel";
 import { SettingsPanel } from "./features/settings";
@@ -12,7 +13,9 @@ import { JournalPanel, DiscoveryPopup } from "./features/journal";
 import { QuestPanel, QuestCompletionPopup } from "./features/quests";
 import { AchievementToast, AchievementGallery } from "./features/achievements";
 import { AuthPanel, LeaderboardPanel } from "./features/social";
-import { HubMenu } from "./components/HubMenu";
+import { NavTabs } from "./components/NavTabs";
+import { IconBack } from "./components/icons";
+import { useUiStore, type PanelId } from "./stores/uiStore";
 import { useTimeOfDay } from "./hooks/useTimeOfDay";
 import { useSeason } from "./hooks/useSeason";
 import { initPersistence, saveImmediate, cleanupPersistence } from "./hooks/useTauriStore";
@@ -33,21 +36,25 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useChatStore } from "./stores/chatStore";
 import { expandWindow, collapseWindow } from "./hooks/useWindowResize";
 
+// Panels that need the expanded window
+const EXPANDED_PANELS = new Set<PanelId>(["chat", "focus"]);
+
+const PANEL_TITLES: Partial<Record<PanelId, string>> = {
+  chat: "Chat",
+  focus: "Focus",
+};
+
 function App() {
   const timeOfDay = useTimeOfDay();
   const season = useSeason();
-  const isOpen = useChatStore((s) => s.isOpen);
-  const toggleChat = useChatStore((s) => s.toggleChat);
+  const activePanel = useUiStore((s) => s.activePanel);
+  const setPanel = useUiStore((s) => s.setPanel);
+  const goHome = useUiStore((s) => s.goHome);
   const checkLlmStatus = useChatStore((s) => s.checkLlmStatus);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showJournal, setShowJournal] = useState(false);
-  const [showQuests, setShowQuests] = useState(false);
-  const [showAchievements, setShowAchievements] = useState(false);
-  const [showSocial, setShowSocial] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showFocus, setShowFocus] = useState(false);
-  const [showHub, setShowHub] = useState(false);
-  const [showNotes, setShowNotes] = useState(false);
+
+  // Sync chat store isOpen with uiStore
+  const chatIsOpen = useChatStore((s) => s.isOpen);
+  const toggleChat = useChatStore((s) => s.toggleChat);
 
   useEffect(() => {
     (async () => {
@@ -94,7 +101,7 @@ function App() {
     });
 
     const unlistenSettings = listen("show-settings", () => {
-      setShowSettings(true);
+      setPanel("settings");
     });
 
     return () => {
@@ -111,115 +118,143 @@ function App() {
     };
   }, []);
 
-  const handleToggleChat = useCallback(async () => {
-    if (isOpen) {
-      toggleChat();
-      await collapseWindow();
-    } else {
-      await expandWindow();
-      toggleChat();
-    }
-  }, [isOpen, toggleChat]);
+  const handleGoHome = useCallback(async () => {
+    const wasExpanded = EXPANDED_PANELS.has(activePanel);
 
-  const handleToggleFocus = useCallback(async () => {
-    if (showFocus) {
-      setShowFocus(false);
-      await collapseWindow();
-    } else {
-      await expandWindow();
-      setShowFocus(true);
+    if (chatIsOpen) {
+      toggleChat();
     }
-  }, [showFocus]);
+
+    goHome();
+
+    if (wasExpanded) {
+      await collapseWindow();
+    }
+  }, [activePanel, chatIsOpen, toggleChat, goHome]);
+
+  // Wire NavTabs to our handler
+  useEffect(() => {
+    return useUiStore.subscribe(
+      (s) => s.activePanel,
+      (panel, prevPanel) => {
+        if (panel === prevPanel) return;
+        // The store was set directly by NavTabs; now handle resize
+        const wasExpanded = EXPANDED_PANELS.has(prevPanel);
+        const willExpand = EXPANDED_PANELS.has(panel);
+
+        if (willExpand && !wasExpanded) {
+          expandWindow().then(() => {
+            if (panel === "chat" && !useChatStore.getState().isOpen) {
+              useChatStore.getState().toggleChat();
+            }
+          });
+        } else if (!willExpand && wasExpanded) {
+          if (useChatStore.getState().isOpen) {
+            useChatStore.getState().toggleChat();
+          }
+          collapseWindow();
+        } else {
+          // Same size — just sync chat
+          if (panel === "chat" && !useChatStore.getState().isOpen) {
+            useChatStore.getState().toggleChat();
+          } else if (panel !== "chat" && useChatStore.getState().isOpen) {
+            useChatStore.getState().toggleChat();
+          }
+        }
+      },
+    );
+  }, []);
+
+  const isExpanded = EXPANDED_PANELS.has(activePanel);
 
   return (
-    <main className="flex h-full w-full flex-col items-center">
-      {isOpen ? (
+    <main className="flex h-full w-full flex-col">
+      {isExpanded ? (
         <>
-          {/* Chat mode: scaled creature + chat panel */}
+          {/* Expanded mode: scaled creature + panel content */}
           <div
-            className="flex items-center justify-center pt-1"
-            style={{ height: "35%" }}
+            className="flex items-center justify-center pt-1 flex-shrink-0"
+            style={{ height: "32%" }}
             data-tauri-drag-region
           >
             <div style={{ transform: "scale(0.55)", transformOrigin: "center center" }}>
               <MossCreature timeOfDay={timeOfDay} season={season} />
             </div>
           </div>
-          <div className="absolute top-2 right-2 z-10">
-            <ChatToggle onToggle={handleToggleChat} />
-          </div>
-          <div className="flex flex-col flex-1 w-full min-h-0">
-            <ChatPanel />
-          </div>
-          <DiscoveryPopup />
-          <ReturnOverlay />
-        </>
-      ) : showFocus ? (
-        <>
-          {/* Focus mode: scaled creature + focus panel */}
+
+          {/* Back button + title */}
           <div
-            className="flex items-center justify-center pt-1"
-            style={{ height: "35%" }}
-            data-tauri-drag-region
+            className="flex items-center gap-2 px-3 py-1.5 flex-shrink-0"
+            style={{ borderBottom: "1px solid var(--color-border-subtle)" }}
           >
-            <div style={{ transform: "scale(0.55)", transformOrigin: "center center" }}>
-              <MossCreature timeOfDay={timeOfDay} season={season} />
-            </div>
-          </div>
-          <div className="absolute top-2 right-2 z-10 flex gap-1">
-            <ChatToggle onToggle={handleToggleChat} />
             <button
-              onClick={handleToggleFocus}
-              className="flex items-center justify-center w-6 h-6 rounded-full transition-transform hover:scale-110"
-              style={{ background: "rgba(0,0,0,0.4)" }}
-              title="Close focus panel"
+              onClick={handleGoHome}
+              className="p-1 rounded-lg transition-colors"
+              style={{ color: "var(--color-text-secondary)" }}
             >
-              <span className="text-white/70 text-xs">{"\u2715"}</span>
+              <IconBack size={16} />
             </button>
+            <span
+              className="font-semibold"
+              style={{
+                fontSize: "var(--text-base)",
+                color: "var(--color-text-primary)",
+              }}
+            >
+              {PANEL_TITLES[activePanel] ?? ""}
+            </span>
           </div>
+
+          {/* Panel content */}
           <div className="flex flex-col flex-1 w-full min-h-0">
-            <FocusPanel />
+            {activePanel === "chat" && <ChatPanel />}
+            {activePanel === "focus" && <FocusPanel />}
           </div>
-          <DiscoveryPopup />
-          <ReturnOverlay />
         </>
       ) : (
         <>
-          {/* Compact mode: creature + focus HUD + hub */}
-          <div className="flex flex-1 items-center justify-center" data-tauri-drag-region>
+          {/* Compact mode: creature + status bar + nav */}
+          <div
+            className="flex flex-1 items-center justify-center"
+            data-tauri-drag-region
+            style={{ minHeight: 0 }}
+          >
             <MossCreature timeOfDay={timeOfDay} season={season} />
           </div>
-          <div className="flex items-center pb-2 px-1 w-full justify-center">
-            <CareButtons
-              onFocusToggle={handleToggleFocus}
-              onHubToggle={() => setShowHub((prev) => !prev)}
-            />
-            <div className="ml-1 flex-shrink-0">
-              <ChatToggle onToggle={handleToggleChat} />
-            </div>
-          </div>
-          <DiscoveryPopup />
-          <ReturnOverlay />
-          <HubMenu
-            isOpen={showHub}
-            onClose={() => setShowHub(false)}
-            onJournal={() => setShowJournal(true)}
-            onQuests={() => setShowQuests(true)}
-            onAchievements={() => setShowAchievements(true)}
-            onNotes={() => setShowNotes(true)}
-            onSocial={() => setShowSocial(true)}
-            onLeaderboard={() => setShowLeaderboard(true)}
-            onSettings={() => setShowSettings(true)}
-          />
-          {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
-          {showJournal && <JournalPanel onClose={() => setShowJournal(false)} />}
-          {showQuests && <QuestPanel onClose={() => setShowQuests(false)} />}
-          {showAchievements && <AchievementGallery onClose={() => setShowAchievements(false)} />}
-          {showSocial && <AuthPanel onClose={() => setShowSocial(false)} />}
-          {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}
-          {showNotes && <NotesPanel onClose={() => setShowNotes(false)} />}
+
+          <StatusBar />
+          <NavTabs />
+
+          {/* Overlay panels */}
+          <AnimatePresence>
+            {activePanel === "journal" && (
+              <JournalPanel onClose={handleGoHome} />
+            )}
+            {activePanel === "quests" && (
+              <QuestPanel onClose={handleGoHome} />
+            )}
+            {activePanel === "achievements" && (
+              <AchievementGallery onClose={handleGoHome} />
+            )}
+            {activePanel === "notes" && (
+              <NotesPanel onClose={handleGoHome} />
+            )}
+            {activePanel === "social" && (
+              <AuthPanel onClose={handleGoHome} />
+            )}
+            {activePanel === "leaderboard" && (
+              <LeaderboardPanel onClose={handleGoHome} />
+            )}
+            {activePanel === "settings" && (
+              <SettingsPanel onClose={handleGoHome} />
+            )}
+          </AnimatePresence>
         </>
       )}
+
+      {/* Global toasts */}
+      <DiscoveryPopup />
+      <ReturnOverlay />
       <QuestCompletionPopup />
       <AchievementToast />
       <FocusCompletionPopup />

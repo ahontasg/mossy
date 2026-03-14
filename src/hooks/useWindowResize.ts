@@ -1,9 +1,9 @@
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 
-const COMPACT_WIDTH = 256;
-const COMPACT_HEIGHT = 320;
+const COMPACT_WIDTH = 300;
+const COMPACT_HEIGHT = 420;
 const CHAT_WIDTH = 380;
-const CHAT_HEIGHT = 560;
+const CHAT_HEIGHT = 600;
 
 const STEPS = 8;
 const STEP_DELAY = 20; // ~160ms total

@@ -32,12 +32,23 @@ export function ChatInput() {
         onKeyDown={handleKeyDown}
         disabled={isStreaming}
         placeholder={isStreaming ? "Mossy is thinking..." : "Talk to Mossy..."}
-        className="flex-1 bg-white/10 text-white/90 text-xs rounded-lg px-2.5 py-1.5 placeholder:text-white/30 outline-none focus:ring-1 focus:ring-moss-400/50 disabled:opacity-50"
+        className="flex-1 rounded-lg px-2.5 py-1.5 outline-none disabled:opacity-50"
+        style={{
+          background: "var(--color-surface-inset)",
+          color: "var(--color-text-primary)",
+          fontSize: "var(--text-sm)",
+          border: "1px solid var(--color-border-subtle)",
+        }}
       />
       <button
         onClick={handleSend}
         disabled={isStreaming || !text.trim()}
-        className="text-sm px-2 py-1 rounded-lg bg-moss-700/60 text-moss-100 hover:bg-moss-600/60 disabled:opacity-30 transition-colors"
+        className="px-3 py-1.5 rounded-lg font-medium disabled:opacity-30 transition-colors"
+        style={{
+          background: "var(--color-terracotta-500)",
+          color: "white",
+          fontSize: "var(--text-sm)",
+        }}
       >
         Send
       </button>

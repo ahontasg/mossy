@@ -16,7 +16,7 @@ function StatDelta({ label, before, after }: { label: string; before: number; af
   const color = diff >= 0 ? "#7cb342" : "#ef4444";
   return (
     <div className="flex justify-between text-[10px]">
-      <span className="text-white/60">{label}</span>
+      <span style={{ color: "var(--color-text-secondary)" }}>{label}</span>
       <span style={{ color }}>
         {Math.round(before)} → {Math.round(after)} ({diff > 0 ? "+" : ""}{diff})
       </span>
@@ -51,18 +51,18 @@ export function ReturnOverlay() {
       {returnMoment && (
         <motion.div
           className="absolute inset-0 z-50 flex items-center justify-center"
-          style={{ background: "rgba(0, 0, 0, 0.6)", backdropFilter: "blur(4px)" }}
+          style={{ background: "oklch(0 0 0 / 0.15)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
           onClick={dismiss}
         >
-          <div className="rounded-xl px-4 py-3 text-center" style={{ background: "rgba(0, 0, 0, 0.5)" }}>
-            <div className="text-white/80 text-xs font-medium mb-1.5">
+          <div className="rounded-xl px-4 py-3 text-center" style={{ background: "var(--color-surface-overlay)" }}>
+            <div className="font-semibold mb-1.5" style={{ color: "var(--color-text-primary)", fontSize: "var(--text-base)" }}>
               While you were away...
             </div>
-            <div className="text-white/40 text-[9px] mb-2">
+            <div className="mb-2" style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-xs)" }}>
               ({returnMoment.durationHours}h)
             </div>
             <div className="space-y-0.5">

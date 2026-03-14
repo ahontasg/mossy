@@ -16,6 +16,7 @@ export function useTimeOfDay(): TimeOfDay {
       root.style.setProperty("--tod-bg", theme.bg);
       root.style.setProperty("--tod-accent", theme.accent);
       root.style.setProperty("--tod-ambient", theme.ambient);
+      root.style.setProperty("--color-surface-base", theme.bg);
     }
 
     update();

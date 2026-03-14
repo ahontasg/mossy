@@ -10,7 +10,7 @@ interface TimerRingProps {
 }
 
 const STATUS_COLORS: Record<FocusStatus, string> = {
-  idle: "rgba(255,255,255,0.2)",
+  idle: "var(--color-surface-inset)",
   focus: "#7cb342",
   short_break: "#42a5f5",
   long_break: "#ab47bc",
@@ -44,7 +44,7 @@ export function TimerRing({ remainingMs, totalMs, status, displayTime, size = 12
         cy={center}
         r={r}
         fill="none"
-        stroke="rgba(255,255,255,0.1)"
+        stroke="var(--color-surface-inset)"
         strokeWidth={4}
       />
       {/* Progress ring */}
@@ -67,7 +67,7 @@ export function TimerRing({ remainingMs, totalMs, status, displayTime, size = 12
         y={center - 6}
         textAnchor="middle"
         dominantBaseline="central"
-        fill="white"
+        fill="var(--color-text-primary)"
         fontSize={size > 80 ? 22 : 14}
         fontWeight="bold"
         fontFamily="monospace"

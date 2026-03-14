@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import { Toast } from "../../components/Toast";
 import { useAchievementStore } from "../../stores/achievementStore";
 import { ACHIEVEMENT_MAP } from "./data/achievements";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { playLevelUpDing } from "../../lib/audio";
 
-interface Toast {
+interface ToastItem {
   id: number;
   name: string;
   icon: string;
@@ -14,7 +15,7 @@ interface Toast {
 let toastId = 0;
 
 export function AchievementToast() {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   useEffect(() => {
     return useAchievementStore.subscribe(
@@ -40,24 +41,17 @@ export function AchievementToast() {
   return (
     <AnimatePresence>
       {toasts.map((t) => (
-        <motion.div
-          key={t.id}
-          className="absolute top-1 left-1/2 -translate-x-1/2 z-50 rounded-lg px-3 py-1.5 text-center pointer-events-none"
-          style={{
-            background: "rgba(0, 0, 0, 0.8)",
-            backdropFilter: "blur(4px)",
-            border: "1px solid rgba(212, 175, 55, 0.5)",
-          }}
-          initial={{ opacity: 0, y: -15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="text-[9px] text-white/50">Achievement Unlocked!</div>
-          <div className="text-[11px] font-bold text-white/90">
+        <Toast key={t.id} variant="achievement">
+          <div style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-xs)" }}>
+            Achievement Unlocked!
+          </div>
+          <div
+            className="font-bold"
+            style={{ color: "var(--color-text-primary)", fontSize: "var(--text-sm)" }}
+          >
             {t.icon} {t.name}
           </div>
-        </motion.div>
+        </Toast>
       ))}
     </AnimatePresence>
   );

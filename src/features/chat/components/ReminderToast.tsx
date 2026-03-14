@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import { Toast } from "../../../components/Toast";
 import { useAssistantStore } from "../../../stores/assistantStore";
 
 export function ReminderToast() {
@@ -20,30 +21,14 @@ export function ReminderToast() {
     }
   }, [firedReminder, dismissFired]);
 
-  const handleDismiss = () => {
-    setVisible(false);
-    dismissFired();
-  };
-
   return (
     <AnimatePresence>
       {visible && firedReminder && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 cursor-pointer"
-          onClick={handleDismiss}
-        >
-          <div
-            className="rounded-lg px-3 py-2 text-center max-w-[200px]"
-            style={{ background: "rgba(59, 130, 246, 0.9)" }}
-          >
-            <div className="text-white/80 text-[10px]">
-              Hey! You asked me to remind you about: {firedReminder.message}
-            </div>
+        <Toast variant="reminder">
+          <div style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-sm)", maxWidth: 200 }}>
+            Hey! You asked me to remind you about: {firedReminder.message}
           </div>
-        </motion.div>
+        </Toast>
       )}
     </AnimatePresence>
   );

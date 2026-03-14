@@ -10,7 +10,7 @@ export function ChatPanel() {
   const clearHistory = useChatStore((s) => s.clearHistory);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-black/40 backdrop-blur-sm rounded-t-xl">
+    <div className="flex flex-col flex-1 min-h-0" style={{ background: "var(--color-surface-raised)" }}>
       {llmStatus !== "ready" ? (
         <LlmSetup />
       ) : (
@@ -19,7 +19,8 @@ export function ChatPanel() {
             <div className="flex justify-end px-2 pt-1">
               <button
                 onClick={clearHistory}
-                className="text-[9px] text-white/30 hover:text-white/60 transition-colors"
+                className="hover:opacity-70 transition-opacity"
+                style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}
               >
                 Clear
               </button>

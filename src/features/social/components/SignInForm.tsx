@@ -49,7 +49,7 @@ export function SignInForm() {
             setIsSignUp(false);
           }}
           className="rounded py-1 text-[10px] font-medium transition-colors"
-          style={{ background: "rgba(124, 179, 66, 0.3)", color: "#7cb342" }}
+          style={{ background: "oklch(0.58 0.14 145 / 0.15)", color: "#7cb342" }}
         >
           Back to Sign In
         </button>
@@ -65,8 +65,8 @@ export function SignInForm() {
           placeholder="Display name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          className="rounded px-2 py-1 text-[10px] text-white/80 outline-none"
-          style={{ background: "rgba(255, 255, 255, 0.08)" }}
+          className="rounded px-2 py-1 text-[10px] outline-none"
+          style={{ background: "var(--color-surface-inset)", color: "var(--color-text-primary)" }}
         />
       )}
       <input
@@ -75,8 +75,8 @@ export function SignInForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
-        className="rounded px-2 py-1 text-[10px] text-white/80 outline-none"
-        style={{ background: "rgba(255, 255, 255, 0.08)" }}
+        className="rounded px-2 py-1 text-[10px] outline-none"
+        style={{ background: "var(--color-surface-inset)", color: "var(--color-text-primary)" }}
       />
       <input
         type="password"
@@ -85,8 +85,8 @@ export function SignInForm() {
         onChange={(e) => setPassword(e.target.value)}
         required
         minLength={6}
-        className="rounded px-2 py-1 text-[10px] text-white/80 outline-none"
-        style={{ background: "rgba(255, 255, 255, 0.08)" }}
+        className="rounded px-2 py-1 text-[10px] outline-none"
+        style={{ background: "var(--color-surface-inset)", color: "var(--color-text-primary)" }}
       />
 
       {error && (
@@ -98,7 +98,7 @@ export function SignInForm() {
         disabled={isLoading}
         className="rounded py-1 text-[10px] font-medium transition-colors"
         style={{
-          background: "rgba(124, 179, 66, 0.3)",
+          background: "oklch(0.58 0.14 145 / 0.15)",
           color: "#7cb342",
           opacity: isLoading ? 0.5 : 1,
         }}
@@ -112,7 +112,8 @@ export function SignInForm() {
           setIsSignUp(!isSignUp);
           setError(null);
         }}
-        className="text-[8px] text-white/40 hover:text-white/60 transition-colors"
+        className="text-[8px] transition-opacity hover:opacity-70"
+        style={{ color: "var(--color-text-tertiary)" }}
       >
         {isSignUp ? "Already have an account? Sign in" : "New here? Create account"}
       </button>

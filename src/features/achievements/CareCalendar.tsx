@@ -19,11 +19,11 @@ function getCalendarDates(): string[] {
 }
 
 function getIntensity(count: number): string {
-  if (count === 0) return "rgba(255, 255, 255, 0.04)";
-  if (count <= 2) return "rgba(124, 179, 66, 0.25)";
-  if (count <= 5) return "rgba(124, 179, 66, 0.45)";
-  if (count <= 10) return "rgba(124, 179, 66, 0.65)";
-  return "rgba(124, 179, 66, 0.85)";
+  if (count === 0) return "var(--color-surface-inset)";
+  if (count <= 2) return "oklch(0.58 0.14 145 / 0.2)";
+  if (count <= 5) return "oklch(0.58 0.14 145 / 0.35)";
+  if (count <= 10) return "oklch(0.58 0.14 145 / 0.55)";
+  return "oklch(0.58 0.14 145 / 0.75)";
 }
 
 export function CareCalendar() {

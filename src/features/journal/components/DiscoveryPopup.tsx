@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import { Toast } from "../../../components/Toast";
 import { useJournalStore } from "../../../stores/journalStore";
 import { SPECIMEN_MAP } from "../data/specimens";
 
@@ -40,27 +41,17 @@ export function DiscoveryPopup() {
   return (
     <AnimatePresence>
       {popups.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute top-2 left-1/2 -translate-x-1/2 z-40 rounded-lg px-3 py-1.5 text-center pointer-events-none"
-          style={{
-            background: "rgba(0, 0, 0, 0.7)",
-            backdropFilter: "blur(4px)",
-            border: `1px solid ${RARITY_COLORS[p.rarity] ?? "#7cb342"}`,
-          }}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="text-[9px] text-white/50">New specimen!</div>
+        <Toast key={p.id} variant="discovery">
+          <div style={{ color: "var(--color-text-tertiary)", fontSize: "var(--text-xs)" }}>
+            New specimen!
+          </div>
           <div
-            className="text-[11px] font-bold"
-            style={{ color: RARITY_COLORS[p.rarity] ?? "#7cb342" }}
+            className="font-bold"
+            style={{ color: RARITY_COLORS[p.rarity] ?? "#7cb342", fontSize: "var(--text-sm)" }}
           >
             {p.name}
           </div>
-        </motion.div>
+        </Toast>
       ))}
     </AnimatePresence>
   );

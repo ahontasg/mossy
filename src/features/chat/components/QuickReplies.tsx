@@ -19,7 +19,12 @@ export function QuickReplies() {
         <button
           key={reply}
           onClick={() => sendMessage(reply)}
-          className="text-[11px] px-2 py-0.5 rounded-full bg-moss-700/40 text-moss-200 hover:bg-moss-600/50 transition-colors"
+          className="px-2 py-0.5 rounded-full transition-colors"
+          style={{
+            fontSize: "var(--text-sm)",
+            background: "var(--color-surface-inset)",
+            color: "var(--color-text-secondary)",
+          }}
         >
           {reply}
         </button>
