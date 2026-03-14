@@ -210,11 +210,11 @@ Settings panel (overlay, accessed from tray menu):
 
 ---
 
-## Phase 3: Discovery & Delight (Weeks 7–10)
+## Phase 3: Discovery & Delight ✅ DONE
 
 **Goal**: Add variable-reward systems that make daily check-ins feel rewarding.
 
-### 3.1 Specimen Discovery System (Weeks 7–8)
+### 3.1 Specimen Discovery System ✅
 
 Catalog of 30+ discoverable organisms:
 - **Common (70%)**: dewdrops, tiny pebbles, basic lichen
@@ -226,7 +226,7 @@ Discovery triggers: time-based (morning vs night), stat-based (well-cared terrar
 
 **Specimen Journal**: Grid UI showing discovered vs undiscovered (silhouettes).
 
-### 3.2 Seasonal Variation (Week 8–9)
+### 3.2 Seasonal Variation ✅
 
 Use system clock for seasonal shifts:
 - Spring: growth spurts, new sprout animations
@@ -234,7 +234,7 @@ Use system clock for seasonal shifts:
 - Autumn: warm amber colors, falling leaf particles
 - Winter: frost crystals, muted palette, cozy dormancy
 
-### 3.3 Streak & Achievement System (Weeks 9–10)
+### 3.3 Streak & Achievement System ✅
 
 - **Care Rhythm tracker**: visual calendar (not punitive streak counter)
 - Milestone rewards at 7, 14, 30, 60, 100 days:
@@ -243,7 +243,7 @@ Use system clock for seasonal shifts:
   - Mossy personality evolution (new phrases)
 - Achievement badges: "First Sprout", "Night Owl", "Green Thumb", "Mycologist"
 
-### 3.4 Daily Micro-Quests
+### 3.4 Daily Micro-Quests ✅
 
 - 1–3 quests generated daily, rotated from a pool:
   - "Water Mossy 3 times today" → +50 bonus XP
@@ -258,11 +258,11 @@ Use system clock for seasonal shifts:
 
 ---
 
-## Phase 4: Competitive & Social (Weeks 11–16)
+## Phase 4: Competitive & Social ✅ DONE
 
 **Goal**: Turn Mossy into a shared workplace experience with friendly competition. Start with zero-backend features, then layer in Supabase for leaderboards and feeds.
 
-### 4.1 Shareable Growth Snapshots (Week 11) — No Backend
+### 4.1 Shareable Growth Snapshots ✅
 
 Generate a daily snapshot card and copy to clipboard for Slack/Teams:
 ```
@@ -275,7 +275,7 @@ Generate a daily snapshot card and copy to clipboard for Slack/Teams:
 - Pure frontend — reads local state, formats text, uses `navigator.clipboard`
 - Ships independently before any backend work
 
-### 4.2 Supabase Backend Setup (Weeks 12–13)
+### 4.2 Supabase Backend Setup ✅
 
 #### Auth & Teams
 
@@ -400,7 +400,7 @@ $$ language plpgsql security definer;
 - **Local state is never overwritten by server** — server is authoritative only for leaderboards
 - Network errors retry with exponential backoff (3 attempts, then re-queue)
 
-### 4.3 Team Leaderboard (Weeks 14–15)
+### 4.3 Team Leaderboard ✅
 
 Leaderboard scores are **computed from validated `care_events`**, not submitted by the client.
 
@@ -431,7 +431,7 @@ Leaderboard scores are **computed from validated `care_events`**, not submitted 
 - Frontend: leaderboard panel (overlay, same pattern as journal/quests/achievements)
 - Auto-refresh on open, cached for 60s
 
-### 4.4 Activity Feed (Week 15–16)
+### 4.4 Activity Feed ✅
 
 - **In-app only** — no Slack bot (too much scope; users can paste snapshots from 4.1 instead)
 - Supabase Realtime subscription on `care_events` filtered by `team_id`
@@ -440,7 +440,7 @@ Leaderboard scores are **computed from validated `care_events`**, not submitted 
 - Events older than 7 days are hidden from the feed (query filter, not deletion)
 - Renders max 20 most recent items
 
-### 4.5 Team Invites & Referral Bonus (Week 16)
+### 4.5 Team Invites & Referral Bonus ✅
 
 - **Team join codes** (from 4.2 auth setup) are the primary invite mechanic
 - "Invite a teammate" button copies join code + a short blurb to clipboard:
@@ -458,11 +458,11 @@ Leaderboard scores are **computed from validated `care_events`**, not submitted 
 
 ---
 
-## Phase 5: Focus Timer + Care System Rework
+## Phase 5: Focus Timer + Care System Rework ✅ DONE
 
 **Goal**: Replace the 4 manual care buttons with a Pomodoro focus timer. Stats are now driven by focus sessions, breaks, and engagement. This is the foundational change everything else builds on.
 
-### 5.1 Focus Timer Core
+### 5.1 Focus Timer Core ✅
 
 - Built-in Pomodoro: 25 min focus → 5 min break → repeat 4x → 15 min long break
 - Customizable durations in settings
@@ -507,7 +507,7 @@ interface FocusState {
 }
 ```
 
-### 5.2 Care System Rework
+### 5.2 Care System Rework ✅
 
 Remove the 4 care buttons. Stats remain as visual indicators but are now driven by meaningful actions:
 
@@ -526,7 +526,7 @@ Remove the 4 care buttons. Stats remain as visual indicators but are now driven 
 - `src/stores/creatureStore.ts` — Remove `feed()`, `water()`, `pet()`, `sunlight()`, care cooldowns. Add `focusCare(stat, amount)`. Rework `decayStats()` for focus-aware decay rate. Keep `addXp()`, `recordCareDay()`, mood derivation, growth stages.
 - `src/features/creature/components/CareButtons.tsx` — **Rewrite** into compact focus HUD: timer status + stat bars + focus start button + hub toggle
 
-### 5.3 Quest System Rewire
+### 5.3 Quest System Rewire ✅
 
 Replace all 21 care-button quest templates with ~20 new focus/game/challenge/chat templates:
 - Focus: "Complete 2 focus sessions" (+40 XP), "Focus 50 total minutes" (+35 XP), "Complete a full 4-session cycle" (+50 XP)
@@ -540,7 +540,7 @@ Replace all 21 care-button quest templates with ~20 new focus/game/challenge/cha
 - `src/features/quests/lib/questTracker.ts` — Replace `trackCareAction` with `trackFocusSession`, `trackGamePlay`, `trackChallengeComplete`
 - `src/stores/questStore.ts` — Update type definitions
 
-### 5.4 Achievement System Rewire
+### 5.4 Achievement System Rewire ✅
 
 Rewrite 15 achievement definitions for focus-driven milestones:
 - Growth: "First Focus" (1 session), "Deep Work" (4 sessions/day), growth stages stay
@@ -553,7 +553,7 @@ Rewrite 15 achievement definitions for focus-driven milestones:
 - `src/stores/achievementStore.ts` — New condition evaluators
 - `src/hooks/useAchievementStore.ts` — Rewire cross-store subscriptions to focusStore
 
-### 5.5 Leaderboard + Sync Rewire
+### 5.5 Leaderboard + Sync Rewire ✅
 
 Update `CareEventType` union in `src/types/index.ts`:
 ```typescript
@@ -583,7 +583,7 @@ export const CARE_EVENT_XP: Record<CareEventType, number> = {
 - Replace `submit_care_event` RPC with new event type validation (keep legacy types for historical data)
 - Replace `leaderboard_weekly` / `leaderboard_monthly` views with focus/game columns
 
-### 5.6 Compact Mode Navigation Redesign
+### 5.6 Compact Mode Navigation Redesign ✅
 
 Replace the toggle row with a **hub button** that opens a quick-access grid of feature icons. Focus timer gets a dedicated always-visible spot.
 
@@ -595,11 +595,11 @@ Replace the toggle row with a **hub button** that opens a quick-access grid of f
 
 ---
 
-## Phase 6: Assistant Features + Chat Enhancement
+## Phase 6: Assistant Features + Chat Enhancement ✅ DONE
 
 **Goal**: Transform Mossy's LLM chat from flavor text into a lightweight desk assistant with notes, reminders, and contextual interactions.
 
-### 6.1 Chat Enhancement
+### 6.1 Chat Enhancement ✅
 
 - **Contextual system prompt**: Include focus stats, streak, recent activity in the system prompt
 - **Proactive Mossy**: During breaks, Mossy initiates with context-aware messages
@@ -607,13 +607,13 @@ Replace the toggle row with a **hub button** that opens a quick-access grid of f
 - **Intent parsing**: Keyword-based regex first, LLM fallback for ambiguous input
 - **Chat XP**: 10 XP per conversation (up from 5)
 
-### 6.2 Quick Notes
+### 6.2 Quick Notes ✅
 
 - Timestamped note list (Zustand → tauri-plugin-store)
 - Add via chat ("Note: standup at 2pm") or dedicated input
 - Simple list with delete — no rich text, no folders
 
-### 6.3 Reminders
+### 6.3 Reminders ✅
 
 - Time-based: "Remind me in 30 minutes to check the build"
 - Stored with trigger timestamp, toast popup when due
@@ -621,7 +621,7 @@ Replace the toggle row with a **hub button** that opens a quick-access grid of f
 - Max 10 active reminders
 - Toast: Mossy saying "Hey! You asked me to remind you about: ..."
 
-### 6.4 Break Suggestions + Daily Brief
+### 6.4 Break Suggestions + Daily Brief ✅
 
 - After each focus session, contextual break suggestion from curated pool (~20-30)
 - On first open each day, Mossy greets with yesterday's stats + today's streak
@@ -630,24 +630,24 @@ Replace the toggle row with a **hub button** that opens a quick-access grid of f
 
 ---
 
-## Phase 7: Brain Break Micro-Games
+## Phase 7: Brain Break Micro-Games ✅ DONE
 
 **Goal**: Two tight micro-games playable during Pomodoro breaks. Free during breaks, token-gated otherwise.
 
-### 7.1 Game Infrastructure
+### 7.1 Game Infrastructure ✅
 
 - Game token system: 1 token earned per completed focus session, 1 spent per game outside of break time, free during breaks
 - High score persistence + "New Record!" animation
 - Scores sync to team leaderboard
 
-### 7.2 Specimen Memory Match
+### 7.2 Specimen Memory Match ✅
 
 - 4x3 grid of face-down cards using discovered specimen pixel art
 - Match pairs within 60 seconds
 - Score = pairs matched + time bonus
 - Uses only player's discovered specimens (personalizes, rewards journal)
 
-### 7.3 Mossy Says (Pattern Recall)
+### 7.3 Mossy Says (Pattern Recall) ✅
 
 - Simon-says with 4 stat icons (Energy/Hydration/Happiness/Hunger)
 - Mossy flashes sequence → player repeats → grows by 1 each round
@@ -655,6 +655,18 @@ Replace the toggle row with a **hub button** that opens a quick-access grid of f
 - Score = longest correct sequence
 
 ### Milestone: Breaks are genuinely fun and earned through focus ✓
+
+---
+
+## Visual Redesign ✅ DONE
+
+**Goal**: Replace the dark transparent overlay aesthetic with a warm, opaque terrarium UI.
+
+- **Window**: `transparent: false`, `macOSPrivateApi: false` (removed), `shadow: true`
+- **Warm oklch color palette** replacing dark `rgba()` overlays — `--color-surface-base`, `--color-terracotta-*`
+- **HubMenu → NavTabs**: bottom tab bar with 4 primary tabs + More overflow (replaced hub grid)
+- **PanelCard overlay pattern**: shared container component for all secondary panels
+- **Window sizes**: compact 300x420, expanded 380x600 (animated transition)
 
 ---
 
@@ -763,7 +775,7 @@ Phases 6 and 8 can start in parallel with Phase 5's later stages.
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-store = "2"
-tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
+tauri-plugin-shell = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
@@ -773,7 +785,6 @@ futures = "0.3"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
-tauri-plugin-updater = "2"
 
 [profile.release]
 codegen-units = 1
@@ -789,12 +800,11 @@ strip = true
 {
   "dependencies": {
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-http": "~2",
     "@tauri-apps/plugin-notification": "~2",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-positioner": "~2",
+    "@tauri-apps/plugin-shell": "~2",
     "@tauri-apps/plugin-store": "~2",
-    "@tauri-apps/plugin-updater": "~2",
     "@supabase/supabase-js": "^2",
     "motion": "latest",
     "react": "^19",
@@ -811,7 +821,7 @@ strip = true
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4",
-    "jsdom": "latest",
+    "happy-dom": "latest",
     "typescript": "~5.8",
     "vite": "^7",
     "vitest": "latest"
